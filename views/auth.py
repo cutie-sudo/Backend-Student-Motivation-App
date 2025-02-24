@@ -2,25 +2,38 @@ import os
 import cloudinary
 import cloudinary.uploader
 import re
+import jwt
 import smtplib
+import logging
 import traceback
 from flask import Blueprint, request, jsonify, url_for, render_template
 from werkzeug.security import check_password_hash, generate_password_hash
 from flask_jwt_extended import create_access_token, get_jwt_identity, get_jwt, jwt_required
 from flask_mail import Message, Mail
 from models import db, TokenBlocklist, Admin, Student
-from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from datetime import datetime, timezone
-from flask import current_app
+from flask import current_app, flash, redirect, url_for
 from datetime import timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email_validator import validate_email, EmailNotValidError  
+from email_validator import validate_email, EmailNotValidError
+from itsdangerous import URLSafeTimedSerializer
+
+ 
+
 
 auth_bp = Blueprint("auth_bp", __name__)
+
+
 mail = Mail()
 
-# Configure Cloudinary
+SECRET_KEY = "your_secret_key"
+serializer = URLSafeTimedSerializer(SECRET_KEY)
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 cloudinary.config(
     cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
     api_key=os.getenv("CLOUDINARY_API_KEY"),
@@ -31,30 +44,48 @@ def is_valid_email(email):
     regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
     return re.match(regex, email) is not None
 
-def send_reset_email(recipient_email):
-    sender_email = "faith.nguli@student.moringaschool.com"
-    app_password = os.getenv("wyrnlfdluxjxarlm")  # Store password securely
-    
-    message = MIMEMultipart()
-    message["From"] = sender_email
-    message["To"] = recipient_email
-    message["Subject"] = "Password Reset Request"
-    
-    reset_token = create_access_token(identity=recipient_email, expires_delta=timedelta(minutes=15))
-    reset_link = f"http://localhost:5000/reset_password/{reset_token}"
-    body = f"Click here to reset your password: {reset_link}"
-    message.attach(MIMEText(body, "plain"))
-    
-    try:
-        server = smtplib.SMTP("smtp.gmail.com", 587)
-        server.starttls()
-        server.login(sender_email, app_password)
-        server.sendmail(sender_email, recipient_email, message.as_string())
-        server.quit()
-        return True
-    except Exception as e:
-        print(f"Error sending email: {e}")
-        return False
+
+@auth_bp.route("/login/github")
+def github_login():
+    return github.authorize(callback=url_for('auth_bp.github_authorized', _external=True))
+
+@auth_bp.route("/login/github/authorized")
+def github_authorized():
+    resp = github.authorized_response()
+    if resp is None or resp.get('access_token') is None:
+        return 'Access denied: reason={} error={}'.format(
+            request.args['error_reason'],
+            request.args['error_description']
+        )
+
+    github_token = resp['access_token']
+    github = oauth.remote_app('github', access_token=github_token)
+    resp = github.get('/user')
+    if not resp.ok:
+        return "Failed to fetch user info from GitHub."
+
+    user_info = resp.json()
+    github_id = str(user_info["id"])  # GitHub ID is an integer, convert to string
+    email = user_info.get("email", "")
+    username = user_info.get("login", "")
+
+    # Check if the user already exists in the database
+    user = Admin.query.filter_by(email=email).first() or Student.query.filter_by(email=email).first()
+
+    if not user:
+        # Create a new user (you can decide whether to create an Admin or Student)
+        # For example, create a Student by default
+        user = Student(
+            username=username,
+            email=email,
+            password=generate_password_hash(github_id)  # Use GitHub ID as a placeholder password
+        )
+        db.session.add(user)
+        db.session.commit()
+
+    # Log the user in
+    login_user(user)
+    return f"Logged in as {user.username} <a href='/logout'>Logout</a>"
 
 
 
@@ -70,10 +101,10 @@ def register_admin():
         return jsonify({"success": False, "error": "All fields are required"}), 400
 
     try:
-        validated = validate_email(email)  # Now validate_email is defined
-        email = validated.email  # Access the validated email
-    except EmailNotValidError as e:  # Now EmailNotValidError is defined
-        return jsonify({"success": False, "error": f"Invalid email format: {str(e)}"}), 400  # Improved error message
+        validated = validate_email(email)  
+        email = validated.email  
+    except EmailNotValidError as e: 
+        return jsonify({"success": False, "error": f"Invalid email format: {str(e)}"}), 400 
 
     existing_admin = Admin.query.filter_by(email=email).first()
     if existing_admin:
@@ -90,10 +121,10 @@ def register_admin():
         db.session.add(new_admin)
         db.session.commit()
 
-        # Create token after commit
+        
         access_token = create_access_token(identity=new_admin.id)
 
-        # Send welcome email
+        
         msg = Message(
             subject="Welcome to Our Platform!",
             sender="faith.nguli@student.moringaschool.com",
@@ -110,13 +141,13 @@ def register_admin():
                     "id": new_admin.id,
                     "username": new_admin.username,
                     "email": new_admin.email,
-                    "role": "admin"  # Role is now hardcoded
+                    "role": "admin"  
                 },
                 "access_token": access_token
             }
         }), 201
-    except Exception as e:  # Catch potential database errors
-        db.session.rollback()  # Rollback on error
+    except Exception as e:  
+        db.session.rollback()  
         return jsonify({"success": False, "error": f"Registration failed: {str(e)}"}), 500
 
 
@@ -134,10 +165,10 @@ def register_student():
         return jsonify({"success": False, "error": "All fields are required"}), 400
 
     try:
-        validated = validate_email(email)  # Now validate_email is defined
-        email = validated.email  # Access the validated email
-    except EmailNotValidError as e:  # Now EmailNotValidError is defined
-        return jsonify({"success": False, "error": f"Invalid email format: {str(e)}"}), 400  # Improved error message
+        validated = validate_email(email)  
+        email = validated.email  
+    except EmailNotValidError as e:  
+        return jsonify({"success": False, "error": f"Invalid email format: {str(e)}"}), 400  
 
     existing_student = Student.query.filter_by(email=email).first()
     if existing_student:
@@ -150,14 +181,15 @@ def register_student():
         db.session.add(new_student)
         db.session.commit()
 
-        # Create token after commit
+        
         access_token = create_access_token(identity=new_student.id)
 
-        # Send welcome email
+       
         msg = Message(
             subject="Welcome to Our Platform!",
+            sender="faith.nguli@student.moringaschool.com",
             recipients=[email],
-            body=f"Hi {username},\n\nWelcome to our platform! We're excited to have you on board.\n\nBest regards,\nThe Team"
+            body=f"Hi {username},\n\nWelcome to our TechElevate! We are committed to helping you stay motivated, grow, and achieve your academic and personal goals\n\nBest regards,\nThe TechElevate Team"
         )
         mail.send(msg)
 
@@ -169,16 +201,16 @@ def register_student():
                     "id": new_student.id,
                     "username": new_student.username,
                     "email": new_student.email,
-                    "role": "student"  # Role is now hardcoded
+                    "role": "student"  
                 },
                 "access_token": access_token
             }
         }), 201
-    except Exception as e:  # Catch potential database errors
-        db.session.rollback()  # Rollback on error
+    except Exception as e:  
+        db.session.rollback() 
         return jsonify({"success": False, "error": f"Registration failed: {str(e)}"}), 500
 
-@auth_bp.route("/admin/login", methods=['POST'])  # Separate route for admin login
+@auth_bp.route("/admin/login", methods=['POST'])  
 def admin_login():
     data = request.get_json()
     email = data.get("email")
@@ -188,15 +220,15 @@ def admin_login():
     if not admin or not check_password_hash(admin.password, password):
         return jsonify({"error": "Invalid email or password"}), 401
     if admin:
-        access_token = create_access_token(identity=admin.id)  # Correct: admin.id
+        access_token = create_access_token(identity=admin.id)  
         return jsonify({
-        "message": "Admin login successful",  # Clearer message
+        "message": "Admin login successful",  
         "access_token": access_token,
         "role": "admin"
     }), 200
 
 
-@auth_bp.route("/student/login", methods=['POST'])  # Separate route for student login
+@auth_bp.route("/student/login", methods=['POST'])  
 def student_login():
     data = request.get_json()
     email = data.get("email")
@@ -206,101 +238,194 @@ def student_login():
     if not student or not check_password_hash(student.password, password):
         return jsonify({"error": "Invalid email or password"}), 401
     if student:
-        access_token = create_access_token(identity=student.id)  # Correct: student.id
+        access_token = create_access_token(identity=student.id)  
         return jsonify({
-        "message": "Student login successful",  # Clearer message
+        "message": "Student login successful", 
         "access_token": access_token,
         "role": "student"
     }), 200
 
-@auth_bp.route("/forgot-password", methods=["POST"])
-def forgot_password():
-    data = request.get_json()
-    email = data.get("email")
-
-    if not email:
-        return jsonify({"success": False, "error": "Email is required"}), 400
-
-    # Check if user exists in Admin or Student table
-    user = Admin.query.filter_by(email=email).first() or Student.query.filter_by(email=email).first()
-    
-    if user:
-        email_sent = send_reset_email(email)  # This function should return True/False
-        
-        if email_sent:
-            return jsonify({"message": "If an account exists, a reset email has been sent"}), 200
-        else:
-            return jsonify({"message": "Error sending reset email."}), 500  
-
-    return jsonify({"message": "If an account exists, a reset email has been sent"}), 200
-
-
 def generate_reset_token(email):
-    serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
-    return serializer.dumps(email, salt='password-reset')
+    admin = Admin.query.filter_by(email=email).first()
+    if admin:
+        role = "admin"
+        user_id = admin.id
+    else:
+        student = Student.query.filter_by(email=email).first()
+        if student:
+            role = "student"
+            user_id = student.id
+        else:
+            return None  
 
-@auth_bp.route('/request-reset', methods=['POST'])
-def request_reset():
-    email = request.json.get('email')
+    payload = {
+        "sub": user_id,
+        "role": role,  
+        "exp": datetime.utcnow() + timedelta(hours=1)
+    }
+    return jwt.encode(payload, current_app.config['SECRET_KEY'], algorithm="HS256")
+
+def send_password_reset_email(user, reset_url):
+    try:
+        subject = "Password Reset Request"
+        msg = Message(
+            subject,
+            recipients=[user.email]
+        )
+        
+        msg.body = f"""
+        To reset your password, visit the following link:
+        {reset_url}
+        
+        If you did not make this request, simply ignore this email.
+        
+        This link will expire in 30 minutes.
+        """
+        
+        msg.html = f"""
+        <h2>Password Reset Request</h2>
+        <p>To reset your password, click the following link:</p>
+        <p><a href="{reset_url}">Reset Password</a></p>
+        <p>If you did not make this request, simply ignore this email.</p>
+        <p>This link will expire in 30 minutes.</p>
+        """
+        
+        mail.send(msg)
+        return True
+    except Exception as e:
+        print(f"Failed to send reset email: {str(e)}")
+        return False
+
+@auth_bp.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    if not request.is_json:
+        return jsonify({"error": "Request must be JSON"}), 400
+    
+    data = request.get_json()
+    email = data.get('email')
+    
     if not email:
         return jsonify({"error": "Email is required"}), 400
+    
+    try:
+        admin = Admin.query.filter_by(email=email).first()
+        student = Student.query.filter_by(email=email).first()
+        user = admin if admin else student
+        
+        if user:
+            token = user.get_reset_token()
+            reset_url = url_for('auth_bp.reset_password', token=token, _external=True)
+            
+            if send_password_reset_email(user, reset_url):
+                return jsonify({"message": "Password reset instructions have been sent to your email."}), 200
+            else:
+                return jsonify({"error": "Error sending reset email. Please try again."}), 500
+        else:
+            return jsonify({"message": "If an account exists with this email, you will receive reset instructions."}), 200
+            
+    except Exception as e:
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
-    user = Admin.query.filter_by(email=email).first() or Student.query.filter_by(email=email).first()
+def set_password(new_password):
+    """Dummy password update function - replace with actual logic"""
+    print(f"Password updated to: {new_password}")
+
+@auth_bp.route('/test-email')
+def test_email():
+    try:
+        msg = Message(
+            'Test Email',
+            recipients=['your-test-email@example.com']
+        )
+        msg.body = 'This is a test email.'
+        mail.send(msg)
+        return 'Email sent successfully!'
+    except Exception as e:
+        return f'Error sending email: {str(e)}'
+
+
+@auth_bp.route('/request-password-reset', methods=['POST'])
+def request_password_reset():
+    from app import mail  
+
+    data = request.json
+    email = data.get('email')
+
+    if not email:
+        return jsonify({"message": "Email is required"}), 400
+
+    
+    user = Admin.query.filter_by(email=email).first() or \
+           Student.query.filter_by(email=email).first()
+
     if not user:
-        # For security, don't reveal if user exists
-        return jsonify({"message": "If an account exists with this email, a reset link will be sent"}), 200
+        return jsonify({"message": "Admin or Student with this email does not exist"}), 404
 
-    token = generate_reset_token(email)
-    reset_url = f"{request.host_url}reset-password/{token}"  # Or your frontend URL
+  
+    token = serializer.dumps(email, salt="password-reset-salt")
+
+    
+    msg = Message(
+        subject="Password Reset Request",
+        recipients=[email],
+        body=f"Click the link to reset your password: http://localhost:5000/reset-password/{token}"
+    )
 
     try:
-        # Send email with reset_url
-        send_reset_email(email, reset_url)
-        return jsonify({"message": "Reset link sent successfully"}), 200
+        mail.send(msg)  
+        logger.info(f"Password reset email sent to {email}")
+        return jsonify({"message": "Password reset email sent successfully"}), 200
     except Exception as e:
-        print(f"Error sending reset email: {e}")
-        return jsonify({"error": "Error sending reset email"}), 500
+        logger.error(f"Error sending email to {email}: {str(e)}")
+        return jsonify({"message": "Error sending email", "error": str(e)}), 500
+
+
 
 @auth_bp.route('/reset-password/<token>', methods=['POST'])
 def reset_password(token):
-    try:
-        serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
-        email = serializer.loads(token, salt="password-reset", max_age=3600)
+    data = request.json
+    new_password = data.get('new_password')
 
-        if email is None:  # Check if email is None
-            return jsonify({"error": "Invalid or expired token"}), 400
-
-            print(f"Email after check: {email}")  
-
-    except SignatureExpired:
-        return jsonify({"error": "Token has expired", "message": "Please request a new password reset link"}), 400
-
-    except BadSignature:
-        return jsonify({"error": "Invalid token", "message": "Reset token is invalid or has been tampered with"}), 400
-
-    except Exception as e:
-        return jsonify({"error": "Token error", "message": str(e)}), 400
-
-    # Find user (Admin or Student)
-    user = Admin.query.filter_by(email=email).first() or Student.query.filter_by(email=email).first()
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
-    new_password = request.json.get("new_password")
     if not new_password:
-        return jsonify({"error": "New password is required"}), 400
-
-    if len(new_password) < 8:
-        return jsonify({"error": "Invalid password", "message": "Password must be at least 8 characters long"}), 400
-
-    user.password = generate_password_hash(new_password)
+        return jsonify({"message": "New password is required"}), 400
 
     try:
+        email = serializer.loads(token, salt="password-reset-salt", max_age=3600)  
+    except SignatureExpired:
+        return jsonify({"message": "Token expired"}), 400
+    except Exception:
+        return jsonify({"message": "Invalid token"}), 400
+
+    
+    user = Admin.query.filter_by(email=email).first() or \
+           Student.query.filter_by(email=email).first()
+
+    if not user:
+        return jsonify({"message": "Admin or Student with this email does not exist"}), 404
+
+    
+    user.password_hash = generate_password_hash(new_password)
+    db.session.commit()
+    
+    return jsonify({"message": "Password reset successfully"}), 200
+
+
+def update_password(user, new_password, user_type):
+    """
+    Generic password update function for both admin and student
+    """
+    try:
+        hashed_password = generate_password_hash(new_password, method='pbkdf2:sha256')
+        user.password = hashed_password
         db.session.commit()
-        return jsonify({"message": "Password updated successfully!"})
+        logger.debug(f"Password updated successfully for {user_type}: {user.username if hasattr(user, 'username') else user.registration_number}")
+        return True
     except Exception as e:
-        print(traceback.format_exc())  # Print full traceback
-        return jsonify({"error": "Token error", "message": str(e)}), 400
+        db.session.rollback()
+        logger.error(f"Error updating {user_type} password: {e}")
+        return False
+
+
 
 
 @auth_bp.route('/protected', methods=['GET'])
@@ -336,7 +461,7 @@ def current_user():
             "id": user.id,
             "email": user.email,
             "username": user.username,
-            "role": role  # Use the determined role
+            "role": role  
         }
     }), 200
 
@@ -356,14 +481,14 @@ def update_profile():
     username = data.get("username", user.username)
     email = data.get("email", user.email)
 
-    # Check if username or email already exists
+    
     if username != user.username and (Admin.query.filter_by(username=username).first() or Student.query.filter_by(username=username).first()):
         return jsonify({"status": "error", "message": "Username already exists"}), 400
 
     if email != user.email and (Admin.query.filter_by(email=email).first() or Student.query.filter_by(email=email).first()):
         return jsonify({"status": "error", "message": "Email already exists"}), 400
 
-    # Update user fields
+    
     user.username = username
     user.email = email
     db.session.commit()
@@ -406,3 +531,6 @@ def logout():
     db.session.commit()
 
     return jsonify({"status": "success", "message": "Logged out successfully"}), 200
+
+
+

@@ -1,0 +1,123 @@
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from models import Post, db, Admin, Student
+from datetime import datetime
+
+
+post_bp = Blueprint('post', __name__)
+
+@post_bp.route('/posts', methods=['POST'])
+@jwt_required()
+def add_post():
+    data = request.get_json()
+    title = data.get('title')
+    content = data.get('content')
+    category_id = data.get('category_id')
+
+    # Validate required fields
+    if not title or not content or not category_id:
+        return jsonify({"message": "Title, content, and category ID are required"}), 400
+
+    # Get the identity of the logged-in user
+    user_id = get_jwt_identity()
+    
+    # Determine if the user is an admin or a student
+    admin = Admin.query.get(user_id)
+    student = Student.query.get(user_id)
+
+    if admin:
+        admin_id = user_id
+        student_id = None
+    elif student:
+        student_id = user_id
+        admin_id = None
+    else:
+        return jsonify({"message": "Unauthorized user"}), 403
+
+    # Create and store the new post
+    new_post = Post(
+        title=title,
+        content=content,
+        category_id=int(category_id),  # Ensure it's an integer
+        admin_id=admin_id,
+        student_id=student_id,
+    )
+    
+    db.session.add(new_post)
+    db.session.commit()
+
+    return jsonify({"message": "Post added successfully", "post_id": new_post.id}), 201
+
+
+
+@post_bp.route('/posts', methods=['GET'])
+def get_posts():
+    posts = Post.query.all()
+    posts_data = [post.to_dict() for post in posts]  
+    return jsonify(posts_data), 200
+
+
+@post_bp.route('/<int:post_id>', methods=['GET'])
+def get_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    return jsonify(post.to_dict()), 200
+
+
+@post_bp.route('/<int:post_id>', methods=['PUT'])
+@jwt_required()
+def update_post(post_id):
+    data = request.get_json()
+    post = Post.query.get_or_404(post_id)
+    student_id = get_jwt_identity()  
+
+    
+    if post.student_id != student_id:
+        return jsonify({"message": "Unauthorized: You can only update posts you created"}), 403
+
+    
+    if 'title' in data:
+        post.title = data['title']
+    if 'content' in data:
+        post.content = data['content']
+    if 'category_id' in data:
+        post.category_id = data['category_id']
+    if 'is_approved' in data:
+        post.is_approved = data['is_approved']
+    if 'is_flagged' in data:
+        post.is_flagged = data['is_flagged']
+
+    db.session.commit()
+    return jsonify({"message": "Post updated successfully", "post_id": post.id}), 200
+
+
+@post_bp.route('/<int:post_id>', methods=['DELETE'])
+@jwt_required()
+def delete_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    student_id = get_jwt_identity()  
+
+    
+    if post.student_id != student_id:
+        return jsonify({"message": "Unauthorized: You can only delete posts you created"}), 403
+
+    db.session.delete(post)
+    db.session.commit()
+    return jsonify({"message": "Post deleted successfully"}), 200
+
+
+@post_bp.route('/<int:post_id>/like', methods=['POST'])
+@jwt_required()
+def like_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    post.likes += 1
+    db.session.commit()
+    return jsonify({"message": "Post liked successfully", "likes": post.likes}), 200
+
+
+@post_bp.route('/<int:post_id>/dislike', methods=['POST'])
+@jwt_required()
+def dislike_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    post.dislikes += 1
+    db.session.commit()
+    return jsonify({"message": "Post disliked successfully", "dislikes": post.dislikes}), 200

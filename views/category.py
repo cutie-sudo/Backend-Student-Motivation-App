@@ -1,12 +1,13 @@
 from flask import Flask, request, jsonify, Blueprint
 from flask_sqlalchemy import SQLAlchemy
-from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity, decode_token  # Import decode_token if needed
+from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity, decode_token  
 from sqlalchemy.exc import IntegrityError
-from models import Category  # Or from models import Category, depending on your structure
-from app import db
+from models import Category  
+from models import db
 
 
 category_bp = Blueprint('category', __name__)
+
 @category_bp.route('/categories', methods=['POST'])
 @jwt_required()
 def add_category():
@@ -17,7 +18,7 @@ def add_category():
     if not name:
         return jsonify({"message": "Category name is required"}), 400
 
-    # Check if the category already exists
+   
     if Category.query.filter_by(name=name).first():
         return jsonify({"message": "Category already exists"}), 400
 
@@ -38,26 +39,26 @@ def get_categories():
 @jwt_required()
 def update_category(category_id):
     data = request.get_json()
-    new_name = data.get('name')  # New name for the category
-    admin_id = get_jwt_identity()  # Get the admin ID from the JWT token
+    new_name = data.get('name')  
+    admin_id = get_jwt_identity()  
 
-    # Check if the category exists
+    
     category = Category.query.get_or_404(category_id)
 
-    # Ensure the admin updating the category is the one who created it
+   
     if category.admin_id != admin_id:
         return jsonify({"message": "Unauthorized: You can only update categories you created"}), 403
 
-    # Check if the new name is provided
+    
     if not new_name:
         return jsonify({"message": "New category name is required"}), 400
 
-    # Check if the new name already exists (to avoid duplicates)
+    
     existing_category = Category.query.filter_by(name=new_name).first()
     if existing_category and existing_category.id != category_id:
         return jsonify({"message": "Category name already exists"}), 400
 
-    # Update the category name
+    
     category.name = new_name
     db.session.commit()
 

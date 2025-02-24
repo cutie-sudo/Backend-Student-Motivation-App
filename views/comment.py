@@ -2,7 +2,7 @@ from datetime import datetime
 from flask import request, jsonify, Blueprint
 from sqlalchemy.exc import IntegrityError
 from flask_jwt_extended import decode_token, get_jwt_identity, get_jwt, jwt_required
-from app import db
+from models import db
 from models import Comment
 
 comment_bp = Blueprint('comment', __name__)
@@ -14,7 +14,7 @@ def add_comment():
     content = data.get('content')
     student_id = get_jwt_identity()
     post_id = data.get('post_id')
-    parent_id = data.get('parent_id', None)  # Optional, for replies
+    parent_id = data.get('parent_id', None)  
 
     if not content or not post_id:
         return jsonify({"message": "Content and post ID are required"}), 400
@@ -57,7 +57,7 @@ def delete_comment(comment_id):
 
 @comment_bp.route('/posts/<int:post_id>/comments', methods=['GET'])
 def get_comments(post_id):
-    comments = Comment.query.filter_by(post_id=post_id, parent_id=None).all()  # Fetch top-level comments
+    comments = Comment.query.filter_by(post_id=post_id, parent_id=None).all()  
     comments_data = []
 
     for comment in comments:
@@ -85,13 +85,13 @@ def get_comments(post_id):
 @jwt_required()
 def update_comment(comment_id):
     student_id = get_jwt_identity()
-    print(f"Student ID from JWT: {student_id}")  # Check this!
+    print(f"Student ID from JWT: {student_id}")  
 
     try:
         auth_header = request.headers.get('Authorization')
-        if auth_header:  # Check if the header exists
-            decoded_token = decode_token(auth_header.split('Bearer ')[1])  # Decode the token
-            print(f"Decoded Token: {decoded_token}")  # Print the decoded token
+        if auth_header:  
+            decoded_token = decode_token(auth_header.split('Bearer ')[1]) 
+            print(f"Decoded Token: {decoded_token}")  
         else:
             print("Authorization header is missing")
     except Exception as e:

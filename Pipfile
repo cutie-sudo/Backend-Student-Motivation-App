@@ -4,16 +4,24 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+psycopg2-binary = "*"
+cloudinary = "*"
+requests-oauthlib = "*"
+authlib = "*"
+virtualenv = "*"
+werkzeug = "*"
 flask = "*"
 flask-sqlalchemy = "*"
+flask-jwt-extended = "*"
 flask-migrate = "*"
 flask-cors = "*"
-flask-jwt-extended = "*"
-psycopg2-binary = "*"
 flask-mail = "*"
-cloudinary = "*"
+pytest = "*"
 python-dotenv = "*"
 email-validator = "*"
+flask-dance = "*"
+flask-login = "*"
+itsdangerous = "==2.0.1"
 
 [dev-packages]
 

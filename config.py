@@ -1,18 +1,21 @@
 import os
 from dotenv import load_dotenv
+from datetime import timedelta
+
+load_dotenv()  # Ensure environment variables are loaded
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'your_secret_key')
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///motivation.db')
+    SECRET_KEY = os.getenv('SECRET_KEY', 'yes12')  # Use os.getenv safely
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///motivation.db' # Fix the app.config issue
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'yes12')
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
 
     # Flask-Mail Config
     MAIL_SERVER = 'smtp.gmail.com'
     MAIL_PORT = 587
     MAIL_USE_TLS = True
-    MAIL_USERNAME = os.environ.get('MAIL_USERNAME', 'faith.nguli@student.moringaschool.com')
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', 'jwrdrsivgslucaxf')
+    MAIL_USERNAME = os.getenv('MAIL_USERNAME', 'faith.nguli@student.moringaschool.com')
+    MAIL_PASSWORD = os.getenv('MAIL_PASSWORD', 'qbyf yqxr gfjj lffs')
     MAIL_DEFAULT_SENDER = 'faith.nguli@student.moringaschool.com'
-
-
-    load_dotenv()
+    FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5000')
