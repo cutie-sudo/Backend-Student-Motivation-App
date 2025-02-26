@@ -2,11 +2,14 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import Post, db, Admin, Student
 from datetime import datetime
+from flask_cors import cross_origin
+
 
 
 post_bp = Blueprint('post', __name__)
 
 @post_bp.route('/posts', methods=['POST'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
 def add_post():
     data = request.get_json()
@@ -51,6 +54,7 @@ def add_post():
 
 
 @post_bp.route('/posts', methods=['GET'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
 def get_posts():
     posts = Post.query.all()
     posts_data = [post.to_dict() for post in posts]  
@@ -58,12 +62,14 @@ def get_posts():
 
 
 @post_bp.route('/<int:post_id>', methods=['GET'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
 def get_post(post_id):
     post = Post.query.get_or_404(post_id)
     return jsonify(post.to_dict()), 200
 
 
 @post_bp.route('/<int:post_id>', methods=['PUT'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
 def update_post(post_id):
     data = request.get_json()
@@ -91,6 +97,7 @@ def update_post(post_id):
 
 
 @post_bp.route('/<int:post_id>', methods=['DELETE'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
 def delete_post(post_id):
     post = Post.query.get_or_404(post_id)
@@ -106,6 +113,7 @@ def delete_post(post_id):
 
 
 @post_bp.route('/<int:post_id>/like', methods=['POST'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
 def like_post(post_id):
     post = Post.query.get_or_404(post_id)
@@ -115,6 +123,7 @@ def like_post(post_id):
 
 
 @post_bp.route('/<int:post_id>/dislike', methods=['POST'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
 def dislike_post(post_id):
     post = Post.query.get_or_404(post_id)

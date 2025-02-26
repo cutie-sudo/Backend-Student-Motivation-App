@@ -1,6 +1,8 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import Share, Post, Student, db
+from flask_cors import cross_origin
+
 
 
 share_bp = Blueprint('share', __name__)
@@ -8,6 +10,7 @@ share_bp = Blueprint('share', __name__)
 
 @share_bp.route('/shares', methods=['POST'])
 @jwt_required()
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
 def share_post():
     student_id = get_jwt_identity()  # The logged-in student
     data = request.get_json()

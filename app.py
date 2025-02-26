@@ -10,6 +10,12 @@ from flask_jwt_extended import JWTManager
 from flask_dance.contrib.github import make_github_blueprint
 from config import Config
 from models import Admin, Student, Post, Comment, Category, Content, Subscription, Wishlist, TokenBlocklist, db, Share,  UserPreference
+from google_auth_oauthlib.flow import Flow
+from googleapiclient.discovery import build
+from threading import Thread
+from authlib.integrations.flask_client import OAuth
+from requests_oauthlib import OAuth2Session  
+
 
 # Initialize extensions
 mail = Mail()
@@ -18,6 +24,10 @@ login_manager = LoginManager()
 
 
 app = Flask(__name__)
+
+oauth = OAuth(app)
+
+app.config.from_object('config')
 
 # Database configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL", "sqlite:///motivation.db")
@@ -33,8 +43,30 @@ app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 app.config['MAIL_USERNAME'] = os.getenv("MAIL_USERNAME", "faith.nguli@student.moringaschool.com")
-app.config['MAIL_PASSWORD'] = os.getenv("MAIL_PASSWORD", "qbyf yqxr gfjj lffs")
+app.config['MAIL_PASSWORD'] = os.getenv("MAIL_PASSWORD", "cdcg bbtf vlxm hiea")
 app.config['MAIL_DEFAULT_SENDER'] = os.getenv("MAIL_DEFAULT_SENDER", "faith.nguli@student.moringaschool.com")
+
+CORS(app, origins="http://localhost:5173", supports_credentials=True)
+
+google = oauth.register(
+    name='google',
+    client_id="722343203611-eb58frc154op8i74a4kufv464q5nhifm.apps.googleusercontent.com",
+    client_secret="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",
+    access_token_url='https://oauth2.googleapis.com/token',
+    authorize_url='https://accounts.google.com/o/oauth2/auth',
+    client_kwargs={'scope': 'openid email profile'}
+)
+
+
+# User loader for Flask-Login
+@login_manager.user_loader
+def load_user(user_id):
+    # Try loading from both Student and Admin tables
+    student = Student.query.get(int(user_id))
+    if student:
+        return student
+    return Admin.query.get(int(user_id))
+
 
 # Initialize extensions
 migrate = Migrate(app, db)
@@ -42,7 +74,6 @@ db.init_app(app)
 mail.init_app(app)
 jwt.init_app(app)
 login_manager.init_app(app)
-
 
 
 login_manager.login_view = "github.login"

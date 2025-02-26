@@ -2,13 +2,17 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
-from models import Student, db  
+from models import Student, db 
+from flask_cors import cross_origin
+
 
 
 student_bp = Blueprint('student', __name__)
 
 
 @student_bp.route('/students', methods=['POST'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+
 def create_student():
     data = request.get_json()
     email = data.get('email')
@@ -37,6 +41,7 @@ def create_student():
 
 
 @student_bp.route('/students', methods=['GET'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
 def get_students():
     students = Student.query.all()
@@ -50,6 +55,7 @@ def get_students():
 
 
 @student_bp.route('/<int:student_id>', methods=['GET'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
 def get_student(student_id):
     student = Student.query.get_or_404(student_id)
@@ -63,6 +69,7 @@ def get_student(student_id):
 
 
 @student_bp.route('/<int:student_id>', methods=['PUT'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
 def update_student(student_id):
     data = request.get_json()
@@ -92,7 +99,7 @@ def update_student(student_id):
 
 
 @student_bp.route('/<int:student_id>', methods=['DELETE'])
-@jwt_required()
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
 def delete_student(student_id):
     student = Student.query.get_or_404(student_id)
     db.session.delete(student)

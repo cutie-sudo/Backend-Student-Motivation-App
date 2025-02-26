@@ -3,22 +3,22 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import pytest
+from app import app, db 
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from app import create_app, db  # Assuming create_app is in app.py
 from models import Admin, Student  # Assuming models are in models.py
 
 @pytest.fixture(scope='session')
 def app():
     test_config = {
         "TESTING": True,
-        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+        "SQLALCHEMY_DATABASE_URI": "sqlite:///:motivation:",
         "SECRET_KEY": "test_secret_key",
         "MAIL_SUPPRESS_SEND": True,
         "JWT_SECRET_KEY": "test_jwt_secret"
     }
 
-    app = create_app(test_config)
+    app =(test_config)
 
     with app.app_context():
         db.create_all()

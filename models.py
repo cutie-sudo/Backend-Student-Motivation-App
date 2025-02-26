@@ -34,7 +34,7 @@ class Student(db.Model, UserMixin):
     
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    username = db.Column(db.String(80), unique=True, nullable=False)
+    username = db.Column(db.String(80), nullable=False)
     password = db.Column(db.String(512), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     github_id = db.Column(db.String(100))
@@ -46,7 +46,7 @@ class Student(db.Model, UserMixin):
     posts = db.relationship("Post", backref="created_by_student", lazy=True)
     comments = db.relationship("Comment", backref="commented_by_student", lazy=True)
     subscriptions = db.relationship("Subscription", back_populates="student")
-    wishlist = db.relationship("Wishlist", backref="wishlist_student", lazy=True)
+    wishlist = db.relationship("Wishlist", backref="wishlist_student", lazy=True, overlaps="wishlists_entries")
     shared_posts = db.relationship("Share", backref="owner", lazy=True, foreign_keys="Share.student_id") 
     received_shares = db.relationship("Share", foreign_keys="Share.shared_with_id", backref="receiver") 
     
@@ -171,7 +171,7 @@ class Wishlist(db.Model):
     # Prevent duplicate wishlist entries
     __table_args__ = (UniqueConstraint("student_id", "post_id", name="uq_student_post"),)
 
-    student = db.relationship("Student", backref="wishlists_entries")
+    student = db.relationship("Student", backref="wishlists_entries", overlaps="wishlist,wishlist_student")
     post = db.relationship("Post", backref="wishlists_entries")
 
 class TokenBlocklist(db.Model):

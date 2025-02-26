@@ -3,6 +3,8 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash
 from models import Admin
 from models import db
+from flask_cors import cross_origin
+
 
 
 admin_bp = Blueprint('admin', __name__)
@@ -36,6 +38,9 @@ def create_admin():
 
 
 @admin_bp.route('/admins', methods=['GET'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True) 
+@jwt_required()
+
 @jwt_required()
 def get_admins():
     admins = Admin.query.all()
@@ -49,6 +54,7 @@ def get_admins():
 
 
 @admin_bp.route('/<int:admin_id>', methods=['GET'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)  
 @jwt_required()
 def get_admin(admin_id):
     admin = Admin.query.get_or_404(admin_id)
@@ -62,6 +68,7 @@ def get_admin(admin_id):
 
 
 @admin_bp.route('/<int:admin_id>', methods=['PUT'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)  
 @jwt_required()
 def update_admin(admin_id):
     data = request.get_json()
@@ -88,6 +95,7 @@ def update_admin(admin_id):
 
 
 @admin_bp.route('/<int:admin_id>', methods=['DELETE'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)  
 @jwt_required()
 def delete_admin(admin_id):
     admin = Admin.query.get_or_404(admin_id)

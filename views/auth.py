@@ -19,9 +19,12 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email_validator import validate_email, EmailNotValidError
 from itsdangerous import URLSafeTimedSerializer
+from flask_cors import cross_origin
 
- 
-
+# from flask_dance.contrib.google import make_google_blueprint, google
+from requests_oauthlib import OAuth2Session
+# from oauthlib.oauth2 import BackendApplicationClient
+from authlib.integrations.flask_client import OAuth
 
 auth_bp = Blueprint("auth_bp", __name__)
 
@@ -43,6 +46,87 @@ cloudinary.config(
 def is_valid_email(email):
     regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
     return re.match(regex, email) is not None
+
+
+# Google OAuth login route
+@auth_bp.route('/google_login')
+def google_login():
+    redirect_uri = url_for('auth.google_callback', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+# Google OAuth callback route
+@auth_bp.route('/google_login/callback')
+def google_callback():
+    try:
+        # Get token from Google
+        token = google.authorize_access_token()
+        
+        # Get user info from Google
+        user_info = google.parse_id_token(token)
+        
+        # Extract user details
+        email = user_info.get('email')
+        name = user_info.get('name', email.split('@')[0])  # Use part of email as name if not available
+        
+        if not email:
+            return jsonify({"success": False, "error": "No email provided by Google"}), 400
+        
+        # Determine role based on email domain
+        user = None
+        access_token = None
+        
+        if email.endswith('@student.moringaschool.com'):
+            # Student login
+            user = Student.query.filter_by(email=email).first()
+            if not user:
+                # Create new student user
+                user = Student(
+                    username=name,
+                    email=email,
+                    password=generate_password_hash('google-oauth-no-password')  # Placeholder password
+                )
+                db.session.add(user)
+                db.session.commit()
+            
+            # Generate JWT token
+            from flask_jwt_extended import create_access_token
+            access_token = create_access_token(identity=user.id)
+            
+        elif email.endswith('@moringaschool.com') or email.endswith('@admin.moringaschool.com'):
+            # Admin login
+            user = Admin.query.filter_by(email=email).first()
+            if not user:
+                # Create new admin user
+                user = Admin(
+                    username=name,
+                    email=email,
+                    password=generate_password_hash('google-oauth-no-password')  # Placeholder password
+                )
+                db.session.add(user)
+                db.session.commit()
+            
+            # Generate JWT token
+            from flask_jwt_extended import create_access_token
+            access_token = create_access_token(identity=user.id)
+            
+        else:
+            return jsonify({
+                "success": False, 
+                "error": "Unauthorized email domain. Please use a Moringa School email address."
+            }), 403
+        
+        # Return success response with user data and token
+        return jsonify({
+            "success": True,
+            "message": "Google login successful!",
+            "data": {
+                "user": user.serialize(),
+                "access_token": access_token
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Google login failed: {str(e)}"}), 500
 
 
 @auth_bp.route("/login/github")
@@ -87,44 +171,48 @@ def github_authorized():
     login_user(user)
     return f"Logged in as {user.username} <a href='/logout'>Logout</a>"
 
-
-
 @auth_bp.route("/admin/register", methods=['POST'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+
 def register_admin():
     data = request.get_json()
-
+    from app import mail
+    
     username = data.get('username')
     email = data.get('email')
     password = data.get('password')
-
+    
     if not username or not email or not password:
         return jsonify({"success": False, "error": "All fields are required"}), 400
-
+    
     try:
-        validated = validate_email(email)  
-        email = validated.email  
-    except EmailNotValidError as e: 
-        return jsonify({"success": False, "error": f"Invalid email format: {str(e)}"}), 400 
-
+        validated = validate_email(email)
+        email = validated.email
+    except EmailNotValidError as e:
+        return jsonify({"success": False, "error": f"Invalid email format: {str(e)}"}), 400
+    
     existing_admin = Admin.query.filter_by(email=email).first()
     if existing_admin:
         return jsonify({"success": False, "error": "Email already exists"}), 400
-
+    
     existing_username = Admin.query.filter_by(username=username).first()
     if existing_username:
         return jsonify({"success": False, "error": "Username already exists"}), 400
-
+    
     hashed_password = generate_password_hash(password)
     new_admin = Admin(username=username, email=email, password=hashed_password)
-
+    
+    # First, handle the database transaction
     try:
         db.session.add(new_admin)
         db.session.commit()
-
-        
         access_token = create_access_token(identity=new_admin.id)
-
-        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": f"Registration failed: {str(e)}"}), 500
+    
+    # Then, handle email sending separately
+    try:
         msg = Message(
             subject="Welcome to Our Platform!",
             sender="faith.nguli@student.moringaschool.com",
@@ -132,59 +220,67 @@ def register_admin():
             body=f"Hi {username},\n\nWelcome to TechElevate platform! We're excited to have you on board. \n\nBest regards,\nThe TechElevate Team"
         )
         mail.send(msg)
-
-        return jsonify({
-            "success": True,
-            "message": "Admin registration successful!",
-            "data": {
-                "user": {
-                    "id": new_admin.id,
-                    "username": new_admin.username,
-                    "email": new_admin.email,
-                    "role": "admin"  
-                },
-                "access_token": access_token
-            }
-        }), 201
-    except Exception as e:  
-        db.session.rollback()  
-        return jsonify({"success": False, "error": f"Registration failed: {str(e)}"}), 500
-
-
-
+        email_status = "Email sent successfully"
+    except Exception as e:
+        # Log the error but don't fail the registration
+        email_status = f"Registration successful but email delivery failed: {str(e)}"
+        # You might want to log this error properly
+    
+    return jsonify({
+        "success": True,
+        "message": "Admin registration successful!",
+        "email_status": email_status,
+        "data": {
+            "user": {
+                "id": new_admin.id,
+                "username": new_admin.username,
+                "email": new_admin.email,
+                "role": "admin"
+            },
+            "access_token": access_token
+        }
+    }), 201
 
 @auth_bp.route("/student/register", methods=['POST'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+
 def register_student():
     data = request.get_json()
-
+    from app import mail
+    
     username = data.get('username')
     email = data.get('email')
     password = data.get('password')
-
+    
     if not username or not email or not password:
         return jsonify({"success": False, "error": "All fields are required"}), 400
-
+    
     try:
-        validated = validate_email(email)  
-        email = validated.email  
-    except EmailNotValidError as e:  
-        return jsonify({"success": False, "error": f"Invalid email format: {str(e)}"}), 400  
-
+        validated = validate_email(email)
+        print("Validated Email Object:", validated)
+        email = validated.email
+    except EmailNotValidError as e:
+        print("Email Validation Error:", str(e))
+        return jsonify({"success": False, "error": f"Invalid email format: {str(e)}"}), 400
+    
     existing_student = Student.query.filter_by(email=email).first()
     if existing_student:
         return jsonify({"success": False, "error": "Email already exists"}), 400
-
+    
     hashed_password = generate_password_hash(password)
     new_student = Student(username=username, email=email, password=hashed_password)
-
+    
+    # Handle database transaction first
     try:
         db.session.add(new_student)
         db.session.commit()
-
-        
         access_token = create_access_token(identity=new_student.id)
-
-       
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": f"Registration failed: {str(e)}"}), 500
+    
+    # Handle email sending separately
+    try:
         msg = Message(
             subject="Welcome to Our Platform!",
             sender="faith.nguli@student.moringaschool.com",
@@ -192,25 +288,31 @@ def register_student():
             body=f"Hi {username},\n\nWelcome to our TechElevate! We are committed to helping you stay motivated, grow, and achieve your academic and personal goals\n\nBest regards,\nThe TechElevate Team"
         )
         mail.send(msg)
+        email_status = "Email sent successfully"
+    except Exception as e:
+        # Log the error but don't fail the registration
+        email_status = f"Registration successful but email delivery failed: {str(e)}"
+        # You might want to log this error properly
+    
+    return jsonify({
+        "success": True,
+        "message": "Student registration successful!",
+        "email_status": email_status,
+        "data": {
+            "user": {
+                "id": new_student.id,
+                "username": new_student.username,
+                "email": new_student.email,
+                "role": "student"
+            },
+            "access_token": access_token
+        }
+    }), 201
 
-        return jsonify({
-            "success": True,
-            "message": "Student registration successful!",
-            "data": {
-                "user": {
-                    "id": new_student.id,
-                    "username": new_student.username,
-                    "email": new_student.email,
-                    "role": "student"  
-                },
-                "access_token": access_token
-            }
-        }), 201
-    except Exception as e:  
-        db.session.rollback() 
-        return jsonify({"success": False, "error": f"Registration failed: {str(e)}"}), 500
+@auth_bp.route("/admin/login", methods=['POST'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)  
 
-@auth_bp.route("/admin/login", methods=['POST'])  
+
 def admin_login():
     data = request.get_json()
     email = data.get("email")
@@ -228,7 +330,9 @@ def admin_login():
     }), 200
 
 
-@auth_bp.route("/student/login", methods=['POST'])  
+@auth_bp.route("/student/login", methods=['POST']) 
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+
 def student_login():
     data = request.get_json()
     email = data.get("email")
@@ -297,6 +401,8 @@ def send_password_reset_email(user, reset_url):
         return False
 
 @auth_bp.route('/forgot-password', methods=['POST'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True) 
+@jwt_required() 
 def forgot_password():
     if not request.is_json:
         return jsonify({"error": "Request must be JSON"}), 400
@@ -345,7 +451,11 @@ def test_email():
 
 
 @auth_bp.route('/request-password-reset', methods=['POST'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True) 
+@jwt_required() 
+
 def request_password_reset():
+    
     from app import mail  
 
     data = request.json
@@ -382,6 +492,8 @@ def request_password_reset():
 
 
 @auth_bp.route('/reset-password/<token>', methods=['POST'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@jwt_required()
 def reset_password(token):
     data = request.json
     new_password = data.get('new_password')
@@ -429,6 +541,7 @@ def update_password(user, new_password, user_type):
 
 
 @auth_bp.route('/protected', methods=['GET'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
 def protected():
     current_user_id = get_jwt_identity()
@@ -438,7 +551,9 @@ def protected():
     return jsonify({"message": "Access granted", "user": {"id": user.id, "email": user.email, "role": "admin" if isinstance(user, Admin) else "student"}})
 
 @auth_bp.route("/user", methods=["GET"])
-@jwt_required()
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+
+
 def current_user():
     current_user_id = get_jwt_identity()
 
@@ -466,6 +581,7 @@ def current_user():
     }), 200
 
 @auth_bp.route("/user/update", methods=["PUT"])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
 def update_profile():
     current_user_id = get_jwt_identity()
@@ -505,6 +621,8 @@ def update_profile():
     }), 200
 
 @auth_bp.route("/user/profile", methods=["GET"])
+
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
 def get_profile():
     current_user_id = get_jwt_identity()
@@ -520,6 +638,7 @@ def get_profile():
     }), 200
 
 @auth_bp.route("/logout", methods=["DELETE"])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
 def logout():
     jti = get_jwt().get("jti")

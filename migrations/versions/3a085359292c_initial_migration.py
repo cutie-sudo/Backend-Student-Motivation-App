@@ -1,8 +1,8 @@
 """initial migration
 
-Revision ID: 9025bcfbe984
+Revision ID: 3a085359292c
 Revises: 
-Create Date: 2025-02-25 00:13:47.256485
+Create Date: 2025-02-25 12:35:41.999129
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '9025bcfbe984'
+revision = '3a085359292c'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -41,8 +41,7 @@ def upgrade():
     sa.Column('profile_pic', sa.String(length=255), nullable=True),
     sa.Column('is_active', sa.Boolean(), nullable=False),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('email'),
-    sa.UniqueConstraint('username')
+    sa.UniqueConstraint('email')
     )
     op.create_table('token_blocklist',
     sa.Column('id', sa.Integer(), nullable=False),

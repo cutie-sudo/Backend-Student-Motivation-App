@@ -4,11 +4,14 @@ from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity, decod
 from sqlalchemy.exc import IntegrityError
 from models import Category  
 from models import db
+from flask_cors import cross_origin
+
 
 
 category_bp = Blueprint('category', __name__)
 
 @category_bp.route('/categories', methods=['POST'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
 def add_category():
     data = request.get_json()
@@ -29,6 +32,8 @@ def add_category():
     return jsonify({"message": "Category added successfully", "category_id": new_category.id}), 201
 
 @category_bp.route('/categories', methods=['GET'])
+
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)  
 def get_categories():
     categories = Category.query.all()
     categories_data = [{"id": category.id, "name": category.name, "admin_id": category.admin_id} for category in categories]
@@ -36,7 +41,9 @@ def get_categories():
 
 
 @category_bp.route('/categories/<int:category_id>', methods=['PUT'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)  
 @jwt_required()
+
 def update_category(category_id):
     data = request.get_json()
     new_name = data.get('name')  
@@ -65,7 +72,8 @@ def update_category(category_id):
     return jsonify({"message": "Category updated successfully", "category_id": category.id}), 200
 
 @category_bp.route('/categories/<int:category_id>', methods=['DELETE'])
-@jwt_required()
+@cross_origin(origin="http://localhost:5173", supports_credentials=True) 
+@jwt_required() 
 def delete_category(category_id):
     admin_id = get_jwt_identity()
     category = Category.query.get_or_404(category_id)

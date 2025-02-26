@@ -15,7 +15,7 @@ class Config:
     MAIL_SERVER = 'smtp.gmail.com'
     MAIL_PORT = 587
     MAIL_USE_TLS = True
-    MAIL_USERNAME = os.getenv('MAIL_USERNAME', 'faith.nguli@student.moringaschool.com')
-    MAIL_PASSWORD = os.getenv('MAIL_PASSWORD', 'qbyf yqxr gfjj lffs')
+    MAIL_USERNAME = os.getenv('faith.nguli@student.moringaschool.com')
+    MAIL_PASSWORD = os.getenv('cdcg bbtf vlxm hiea')
     MAIL_DEFAULT_SENDER = 'faith.nguli@student.moringaschool.com'
-    FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5000')
+    FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')

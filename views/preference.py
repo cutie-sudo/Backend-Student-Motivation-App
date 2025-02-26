@@ -1,12 +1,16 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import UserPreference, db
+from flask_cors import cross_origin
+
 
 preference_bp = Blueprint('preference', __name__)
 
 
 @preference_bp.route('/preferences', methods=['POST'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
+
 def add_preference():
     student_id = get_jwt_identity()
     data = request.get_json()
@@ -39,7 +43,9 @@ def add_preference():
     return jsonify({"message": "Preference added successfully", "preference_id": preference.id}), 201
     
 @preference_bp.route('/preferences', methods=['GET'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
+
 def get_preferences():
     student_id = get_jwt_identity()
     preferences = UserPreference.query.filter_by(student_id=student_id).all()

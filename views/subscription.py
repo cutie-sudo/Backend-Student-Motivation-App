@@ -1,10 +1,13 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import Subscription, Category, db
+from flask_cors import cross_origin
+
 
 subscription_bp = Blueprint('subscription', __name__)
 
 @subscription_bp.route('/subscriptions', methods=['POST'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
 def subscribe():
     student_id = get_jwt_identity()  # Get logged-in student ID
@@ -38,6 +41,7 @@ def subscribe():
 
 
 @subscription_bp.route('/subscriptions', methods=['GET'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
 def get_subscriptions():
     student_id = get_jwt_identity()
@@ -48,6 +52,7 @@ def get_subscriptions():
     } for sub in subscriptions]), 200
 
 @subscription_bp.route('/subscriptions/<int:subscription_id>', methods=['DELETE'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
 def unsubscribe(subscription_id):
     student_id = get_jwt_identity()

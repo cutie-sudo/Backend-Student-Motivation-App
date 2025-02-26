@@ -2,12 +2,16 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import Content, Category
 from models import db
+from flask_cors import cross_origin
+
 
 # Define Blueprint
 content_bp = Blueprint('content', __name__)
 
 # Route to add content
 @content_bp.route('/content', methods=['POST'])
+
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
 def add_content():
     data = request.get_json()
@@ -38,6 +42,7 @@ def add_content():
 
 # Route to get all content
 @content_bp.route('/content', methods=['GET'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
 def get_all_content():
     contents = Content.query.all()
     content_data = [{
@@ -53,6 +58,9 @@ def get_all_content():
 
 # Route to get specific content by ID
 @content_bp.route('/content/<int:content_id>', methods=['GET'])
+
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@jwt_required()
 def get_content(content_id):
     content = Content.query.get_or_404(content_id)
     content_data = {
@@ -68,6 +76,8 @@ def get_content(content_id):
 
 # Route to update content
 @content_bp.route('/content/<int:content_id>', methods=['PUT'])
+
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
 def update_content(content_id):
     data = request.get_json()
@@ -94,6 +104,7 @@ def update_content(content_id):
 
 # Route to delete content
 @content_bp.route('/content/<int:content_id>', methods=['DELETE'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
 def delete_content(content_id):
     user_id = get_jwt_identity()
