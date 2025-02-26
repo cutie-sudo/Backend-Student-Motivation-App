@@ -82,8 +82,8 @@ login_manager.init_app(app)
 login_manager.login_view = "github.login"
 # GitHub OAuth blueprint
 github_bp = make_github_blueprint(
-    client_id=os.getenv("GITHUB_CLIENT_ID", "Ov23liqNiPP1Y2tGyRog"),
-    client_secret=os.getenv("GITHUB_CLIENT_SECRET", "4f124d6654d27cff5f98693622bea4e508a91558"),
+    client_id=os.getenv("GITHUB_CLIENT_ID"),
+    client_secret=os.getenv("GITHUB_CLIENT_SECRET"),
     redirect_to="github_login"
 )
 
