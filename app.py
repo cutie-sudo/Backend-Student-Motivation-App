@@ -15,12 +15,15 @@ from googleapiclient.discovery import build
 from threading import Thread
 from authlib.integrations.flask_client import OAuth
 from requests_oauthlib import OAuth2Session  
+from dotenv import load_dotenv
 
 
 # Initialize extensions
 mail = Mail()
 jwt = JWTManager()
 login_manager = LoginManager()
+
+load_dotenv() 
 
 
 app = Flask(__name__)
@@ -50,8 +53,8 @@ CORS(app, origins="http://localhost:5173", supports_credentials=True)
 
 google = oauth.register(
     name='google',
-    client_id="722343203611-eb58frc154op8i74a4kufv464q5nhifm.apps.googleusercontent.com",
-    client_secret="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",
+    client_id=os.getenv('GOOGLE_OAUTH_CLIENT_ID'),  # Use client_id instead of GOOGLE_OAUTH_CLIENT_ID
+    client_secret=os.getenv('GOOGLE_OAUTH_CLIENT_SECRET'),  # Use client_secret instead of GOOGLE_OAUTH_CLIENT_SECRET
     access_token_url='https://oauth2.googleapis.com/token',
     authorize_url='https://accounts.google.com/o/oauth2/auth',
     client_kwargs={'scope': 'openid email profile'}
