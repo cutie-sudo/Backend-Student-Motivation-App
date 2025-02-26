@@ -41,15 +41,16 @@ class Student(db.Model, UserMixin):
     profile_pic = db.Column(db.String(255), nullable=True, default="default.png")
     is_active = db.Column(db.Boolean, default=True, nullable=False)
 
-    
     # Relationships
     posts = db.relationship("Post", backref="created_by_student", lazy=True)
     comments = db.relationship("Comment", backref="commented_by_student", lazy=True)
     subscriptions = db.relationship("Subscription", back_populates="student")
-    wishlist = db.relationship("Wishlist", backref="wishlist_student", lazy=True, overlaps="wishlists_entries")
-    shared_posts = db.relationship("Share", backref="owner", lazy=True, foreign_keys="Share.student_id") 
-    received_shares = db.relationship("Share", foreign_keys="Share.shared_with_id", backref="receiver") 
+    wishlist = db.relationship("Wishlist", back_populates="student", overlaps="wishlists_entries")
     
+    # Fixed relationships with Share model
+    shared_posts = db.relationship("Share", foreign_keys="Share.student_id", back_populates="student", overlaps="received_shares,another_shares") 
+    received_shares = db.relationship("Share", foreign_keys="Share.shared_with", back_populates="shared_with_student", overlaps="shared_posts,another_shares") 
+    another_shares = db.relationship("Share", foreign_keys="Share.another_fk", back_populates="another_relation", overlaps="shared_posts,received_shares")
 
 class Post(db.Model):
     __tablename__ = "posts"
@@ -67,7 +68,8 @@ class Post(db.Model):
     dislikes = db.Column(db.Integer, default=0)
     
     comments = db.relationship("Comment", backref="post_comments", lazy=True)
-    shares = db.relationship("Share", backref="post", lazy=True)
+    shares = db.relationship("Share", back_populates="post")
+    wishlist_entries = db.relationship("Wishlist", back_populates="post")
 
 
 class Comment(db.Model):
@@ -127,13 +129,35 @@ class Share(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     post_id = db.Column(db.Integer, db.ForeignKey("posts.id"), nullable=False)
     student_id = db.Column(db.Integer, db.ForeignKey("students.id"), nullable=False)
-    shared_with_id = db.Column(db.Integer, db.ForeignKey("students.id"), nullable=False)
+    shared_with = db.Column(db.Integer, db.ForeignKey("students.id"), nullable=False)
     another_fk = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    student = db.relationship("Student", foreign_keys=[student_id])
-    shared_with = db.relationship('Student', foreign_keys=[shared_with_id])
+    # Relationships
+    student = db.relationship(
+        "Student",
+        foreign_keys=[student_id],
+        back_populates="shared_posts",
+        overlaps="shared_with_student,another_relation"
+    )
+    
+    # Fixed relationship name to match the column
+    shared_with_student = db.relationship(
+        "Student",
+        foreign_keys=[shared_with],  # Use the column name, not shared_with_id
+        back_populates="received_shares",
+        overlaps="student,another_relation"
+    )
+    
+    another_relation = db.relationship(
+        "Student",
+        foreign_keys=[another_fk],
+        back_populates="another_shares",
+        overlaps="student,shared_with_student"
+    )
 
+    # Relationship to Post
+    post = db.relationship("Post", back_populates="shares")
     
 
 class UserPreference(db.Model):

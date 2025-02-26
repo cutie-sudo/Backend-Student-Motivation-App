@@ -51,7 +51,7 @@ def get_all_content():
         "description": content.description,
         "category_id": content.category_id,
         "status": content.status,
-        "user_id": content.user_id
+        "admin_id": content.admin_id
     } for content in contents]
     
     return jsonify(content_data), 200
@@ -69,7 +69,7 @@ def get_content(content_id):
         "description": content.description,
         "category_id": content.category_id,
         "status": content.status,
-        "user_id": content.user_id
+        "admin_id": content.admin_id
     }
     
     return jsonify(content_data), 200
@@ -84,7 +84,7 @@ def update_content(content_id):
     title = data.get('title')
     description = data.get('description')
     status = data.get('status')
-    user_id = get_jwt_identity()
+    admin_id = get_jwt_identity()
 
     content = Content.query.get_or_404(content_id)
 
@@ -107,11 +107,11 @@ def update_content(content_id):
 @cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
 def delete_content(content_id):
-    user_id = get_jwt_identity()
+    admin_id = get_jwt_identity()
     content = Content.query.get_or_404(content_id)
 
     # Ensure only the creator can delete the content
-    if content.user_id != user_id:
+    if content.admin_id != admin_id:
         return jsonify({"message": "Unauthorized: You can only delete your own content"}), 403
 
     db.session.delete(content)
