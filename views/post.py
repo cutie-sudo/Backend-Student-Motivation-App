@@ -57,15 +57,35 @@ def add_post():
 @cross_origin(origin="http://localhost:5173", supports_credentials=True)
 def get_posts():
     posts = Post.query.all()
-    posts_data = [post.to_dict() for post in posts]  
+    posts_data = [
+        {
+            "id": post.id,
+            "title": post.title,
+            "content": post.content,
+            "category_id": post.category_id,
+            "student_id": post.student_id,
+            "created_at": post.created_at.isoformat() if post.created_at else None
+        }
+        for post in posts
+    ]
     return jsonify(posts_data), 200
+
 
 
 @post_bp.route('/<int:post_id>', methods=['GET'])
 @cross_origin(origin="http://localhost:5173", supports_credentials=True)
 def get_post(post_id):
     post = Post.query.get_or_404(post_id)
-    return jsonify(post.to_dict()), 200
+    post_data = {
+        "id": post.id,
+        "title": post.title,
+        "content": post.content,
+        "category_id": post.category_id,
+        "student_id": post.student_id,
+        "created_at": post.created_at.isoformat() if post.created_at else None
+    }
+    return jsonify(post_data), 200
+
 
 
 @post_bp.route('/<int:post_id>', methods=['PUT'])
