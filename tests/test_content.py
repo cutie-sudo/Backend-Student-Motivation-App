@@ -5,14 +5,16 @@ from models import Content, Category, Admin
 
 @pytest.fixture
 def client():
-    """Set up test client and database."""
+    """Ensure a fresh test database for each test session."""
     app.config["TESTING"] = True
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:motivation:"  # Use in-memory database for testing
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:motivation:"  # Use in-memory DB
     with app.app_context():
-        db.create_all()
+        db.drop_all()  # Clear any previous test data
+        db.create_all()  # Recreate tables for each test
         yield app.test_client()
         db.session.remove()
-        db.drop_all()
+        db.drop_all()  # Clean up after tests
+
 
 @pytest.fixture
 def auth_headers(client):
@@ -28,17 +30,16 @@ def auth_headers(client):
 
 @pytest.fixture
 def test_admin():
-    """Create a test admin only if it does not exist."""
+    """Ensure test admin exists without duplicates."""
     with app.app_context():
         admin = Admin.query.filter_by(username="testadmin").first()
         if not admin:
             admin = Admin(username="testadmin", email="admin@test.com", password="password")
             db.session.add(admin)
             db.session.commit()
+        return admin  # No need to refresh since we're not modifying
 
-        # Refresh to keep it bound to session
-        db.session.refresh(admin)
-        return admin
+
 
 
 @pytest.fixture
@@ -54,9 +55,8 @@ def test_category(test_admin):
         db.session.refresh(category)  # Keep it bound to session
         return category
 
-
 @pytest.fixture
-def test_content(test_category):
+def test_content(test_category, test_admin):
     """Create a test content item."""
     with app.app_context():
         content = Content(
@@ -64,11 +64,15 @@ def test_content(test_category):
             description="This is a sample description",
             category_id=test_category.id,
             status="pending",
-            user_id=1  # Assuming admin ID is 1
+            admin_id=test_admin.id  
         )
         db.session.add(content)
         db.session.commit()
+
+        db.session.refresh(content)  
         return content
+
+
 
 def test_add_content(client, auth_headers, test_category):
     """Test adding new content."""

@@ -28,6 +28,7 @@ class Admin(db.Model, UserMixin):
     # Relationships
     posts = db.relationship("Post", backref="created_by_admin", lazy=True)
     categories = db.relationship("Category", backref="created_by_admin", lazy=True)
+    contents = db.relationship("Content", back_populates="admin", cascade="all, delete-orphan")
 
 class Student(db.Model, UserMixin):
     __tablename__ = "students"
@@ -46,6 +47,7 @@ class Student(db.Model, UserMixin):
     comments = db.relationship("Comment", backref="commented_by_student", lazy=True)
     subscriptions = db.relationship("Subscription", back_populates="student")
     wishlist = db.relationship("Wishlist", back_populates="student", overlaps="wishlists_entries")
+    
     
     # Fixed relationships with Share model
     shared_posts = db.relationship("Share", foreign_keys="Share.student_id", back_populates="student", overlaps="received_shares,another_shares") 
@@ -69,7 +71,7 @@ class Post(db.Model):
     
     comments = db.relationship("Comment", backref="post_comments", lazy=True)
     shares = db.relationship("Share", back_populates="post")
-    wishlist_entries = db.relationship("Wishlist", back_populates="post")
+    wishlists_entries = db.relationship("Wishlist", back_populates="post")
 
 
 class Comment(db.Model):
@@ -103,13 +105,18 @@ class Content(db.Model):
     description = db.Column(db.Text, nullable=True)  # Make description optional
     status = db.Column(db.String(50), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False)
+<<<<<<< HEAD
     admin_id = db.Column(db.Integer, db.ForeignKey('admins.id'), nullable=False)
 
     # New fields for content type and external link
     content_type = db.Column(db.String(50), nullable=False, default="note")  # Default to 'note'
     content_link = db.Column(db.String(255), nullable=True)  # Make link optional
+=======
+    admin_id = db.Column(db.Integer, db.ForeignKey('admins.id'), nullable=False)  
+
+>>>>>>> 7083b32 (Save local changes before pull)
     
-    admin = db.relationship('Admin', backref=db.backref('contents', lazy=True))
+    admin = db.relationship("Admin", back_populates="contents")
     category = db.relationship('Category', backref=db.backref('contents', lazy=True))
 
 
