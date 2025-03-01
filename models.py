@@ -4,7 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+from itsdangerous import URLSafeTimedSerializer as Serializer
 
 # Initialize SQLAlchemy
 
@@ -100,13 +100,19 @@ class Content(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.Text, nullable=False)
+    description = db.Column(db.Text, nullable=True)  # Make description optional
     status = db.Column(db.String(50), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False)
     admin_id = db.Column(db.Integer, db.ForeignKey('admins.id'), nullable=False)
+
+    # New fields for content type and external link
+    content_type = db.Column(db.String(50), nullable=False, default="note")  # Default to 'note'
+    content_link = db.Column(db.String(255), nullable=True)  # Make link optional
     
     admin = db.relationship('Admin', backref=db.backref('contents', lazy=True))
     category = db.relationship('Category', backref=db.backref('contents', lazy=True))
+
+
 
 
 class Notification(db.Model):

@@ -1,8 +1,8 @@
-"""initial migration
+"""Initial migration with content_type and content_link
 
-Revision ID: 0f79fc58f357
+Revision ID: 0164dafcfac2
 Revises: 
-Create Date: 2025-02-26 22:10:10.924380
+Create Date: 2025-02-27 03:31:34.275652
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '0f79fc58f357'
+revision = '0164dafcfac2'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -70,10 +70,12 @@ def upgrade():
     op.create_table('content',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('title', sa.String(length=100), nullable=False),
-    sa.Column('description', sa.Text(), nullable=False),
+    sa.Column('description', sa.Text(), nullable=True),
     sa.Column('status', sa.String(length=50), nullable=False),
     sa.Column('category_id', sa.Integer(), nullable=False),
     sa.Column('admin_id', sa.Integer(), nullable=False),
+    sa.Column('content_type', sa.String(length=50), nullable=False),
+    sa.Column('content_link', sa.String(length=255), nullable=True),
     sa.ForeignKeyConstraint(['admin_id'], ['admins.id'], ),
     sa.ForeignKeyConstraint(['category_id'], ['categories.id'], ),
     sa.PrimaryKeyConstraint('id')
@@ -133,12 +135,12 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('post_id', sa.Integer(), nullable=False),
     sa.Column('student_id', sa.Integer(), nullable=False),
-    sa.Column('shared_with_id', sa.Integer(), nullable=False),
+    sa.Column('shared_with', sa.Integer(), nullable=False),
     sa.Column('another_fk', sa.Integer(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['another_fk'], ['students.id'], ),
     sa.ForeignKeyConstraint(['post_id'], ['posts.id'], ),
-    sa.ForeignKeyConstraint(['shared_with_id'], ['students.id'], ),
+    sa.ForeignKeyConstraint(['shared_with'], ['students.id'], ),
     sa.ForeignKeyConstraint(['student_id'], ['students.id'], ),
     sa.PrimaryKeyConstraint('id')
     )

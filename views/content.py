@@ -4,13 +4,11 @@ from models import Content, Category
 from models import db
 from flask_cors import cross_origin
 
-
 # Define Blueprint
 content_bp = Blueprint('content', __name__)
 
 # Route to add content
 @content_bp.route('/content', methods=['POST'])
-
 @cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
 def add_content():
@@ -18,22 +16,41 @@ def add_content():
     title = data.get('title')
     description = data.get('description')
     category_id = data.get('category_id')
-    admin_id = get_jwt_identity()
+    content_type = data.get('content_type')  # 'video', 'note', 'podcast'
+    content_link = data.get('content_link')  # e.g., YouTube link for videos
 
-    if not title or not description or not category_id:
-        return jsonify({"message": "Title, description, and category ID are required"}), 400
+    current_user = get_jwt_identity()
+    admin_id = current_user.get("id")
+    role = current_user.get("role")
+
+    # Ensure the user is an admin
+    if role != "admin":
+        return jsonify({"message": "Only admins can add content"}), 403
+
+    # Validation
+    if not title or not category_id or not content_type:
+        return jsonify({"message": "Title, category ID, and content type are required"}), 400
+
+    if content_type in ['video', 'podcast'] and not content_link:
+        return jsonify({"message": "Content link is required for videos and podcasts"}), 400
+
+    if content_type == 'note' and not description:
+        return jsonify({"message": "Description is required for notes"}), 400
 
     # Check if the category exists
     category = Category.query.get(category_id)
     if not category:
         return jsonify({"message": "Category not found"}), 404
 
+    # Create and save the new content
     new_content = Content(
         title=title,
         description=description,
         category_id=category_id,
         status='pending',
-        admin_id=admin_id
+        admin_id=admin_id,
+        content_type=content_type,
+        content_link=content_link
     )
     db.session.add(new_content)
     db.session.commit()
@@ -51,14 +68,15 @@ def get_all_content():
         "description": content.description,
         "category_id": content.category_id,
         "status": content.status,
-        "admin_id": content.admin_id
+        "admin_id": content.admin_id,
+        "content_type": content.content_type,
+        "content_link": content.content_link
     } for content in contents]
     
     return jsonify(content_data), 200
 
 # Route to get specific content by ID
 @content_bp.route('/content/<int:content_id>', methods=['GET'])
-
 @cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
 def get_content(content_id):
@@ -69,51 +87,9 @@ def get_content(content_id):
         "description": content.description,
         "category_id": content.category_id,
         "status": content.status,
-        "admin_id": content.admin_id
+        "admin_id": content.admin_id,
+        "content_type": content.content_type,
+        "content_link": content.content_link
     }
     
     return jsonify(content_data), 200
-
-# Route to update content
-@content_bp.route('/content/<int:content_id>', methods=['PUT'])
-
-@cross_origin(origin="http://localhost:5173", supports_credentials=True)
-@jwt_required()
-def update_content(content_id):
-    data = request.get_json()
-    title = data.get('title')
-    description = data.get('description')
-    status = data.get('status')
-    admin_id = get_jwt_identity()
-
-    content = Content.query.get_or_404(content_id)
-
-    # Ensure only the creator can update the content
-    if content.user_id != user_id:
-        return jsonify({"message": "Unauthorized: You can only update your own content"}), 403
-
-    if title:
-        content.title = title
-    if description:
-        content.description = description
-    if status:
-        content.status = status
-
-    db.session.commit()
-    return jsonify({"message": "Content updated successfully"}), 200
-
-# Route to delete content
-@content_bp.route('/content/<int:content_id>', methods=['DELETE'])
-@cross_origin(origin="http://localhost:5173", supports_credentials=True)
-@jwt_required()
-def delete_content(content_id):
-    admin_id = get_jwt_identity()
-    content = Content.query.get_or_404(content_id)
-
-    # Ensure only the creator can delete the content
-    if content.admin_id != admin_id:
-        return jsonify({"message": "Unauthorized: You can only delete your own content"}), 403
-
-    db.session.delete(content)
-    db.session.commit()
-    return jsonify({"message": "Content deleted successfully"}), 200

@@ -1,16 +1,15 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash
-from models import Admin
-from models import db
+from models import Admin, db
 from flask_cors import cross_origin
-
-
 
 admin_bp = Blueprint('admin', __name__)
 
-
+# Create a new admin
 @admin_bp.route('/admins', methods=['POST'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@jwt_required()
 def create_admin():
     data = request.get_json()
     email = data.get('email')
@@ -20,27 +19,22 @@ def create_admin():
     if not email or not username or not password:
         return jsonify({"message": "Email, username, and password are required"}), 400
 
-    
     if Admin.query.filter_by(email=email).first():
         return jsonify({"message": "Email already exists"}), 400
     if Admin.query.filter_by(username=username).first():
         return jsonify({"message": "Username already exists"}), 400
 
-    
     hashed_password = generate_password_hash(password)
 
-    
     new_admin = Admin(email=email, username=username, password=hashed_password)
     db.session.add(new_admin)
     db.session.commit()
 
     return jsonify({"message": "Admin created successfully", "admin_id": new_admin.id}), 201
 
-
+# Get all admins
 @admin_bp.route('/admins', methods=['GET'])
 @cross_origin(origin="http://localhost:5173", supports_credentials=True) 
-@jwt_required()
-
 @jwt_required()
 def get_admins():
     admins = Admin.query.all()
@@ -52,8 +46,8 @@ def get_admins():
     } for admin in admins]
     return jsonify(admins_data), 200
 
-
-@admin_bp.route('/<int:admin_id>', methods=['GET'])
+# Get a specific admin by ID
+@admin_bp.route('/admins/<int:admin_id>', methods=['GET'])
 @cross_origin(origin="http://localhost:5173", supports_credentials=True)  
 @jwt_required()
 def get_admin(admin_id):
@@ -66,8 +60,8 @@ def get_admin(admin_id):
     }
     return jsonify(admin_data), 200
 
-
-@admin_bp.route('/<int:admin_id>', methods=['PUT'])
+# Update an admin
+@admin_bp.route('/admins/<int:admin_id>', methods=['PUT'])
 @cross_origin(origin="http://localhost:5173", supports_credentials=True)  
 @jwt_required()
 def update_admin(admin_id):
@@ -93,8 +87,8 @@ def update_admin(admin_id):
     db.session.commit()
     return jsonify({"message": "Admin updated successfully"}), 200
 
-
-@admin_bp.route('/<int:admin_id>', methods=['DELETE'])
+# Delete an admin
+@admin_bp.route('/admins/<int:admin_id>', methods=['DELETE'])
 @cross_origin(origin="http://localhost:5173", supports_credentials=True)  
 @jwt_required()
 def delete_admin(admin_id):
