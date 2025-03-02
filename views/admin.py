@@ -1,15 +1,30 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from werkzeug.security import generate_password_hash
-from models import Admin, db
+from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
+from werkzeug.security import generate_password_hash, check_password_hash
+from models import Admin, Student, Category, db  # ✅ Import missing models
 from flask_cors import cross_origin
 
 admin_bp = Blueprint('admin', __name__)
 
-# Create a new admin
+# ✅ Admin Login Route (Fixing Missing Route)
+@admin_bp.route('/admin/login', methods=['POST'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)  # ✅ Allow frontend requests
+def admin_login():
+    data = request.get_json()
+    email = data.get("email")
+    password = data.get("password")
+
+    admin = Admin.query.filter_by(email=email).first()
+    if not admin or not check_password_hash(admin.password, password):
+        return jsonify({"success": False, "error": "Invalid credentials"}), 401
+
+    access_token = create_access_token(identity={"id": admin.id, "role": "admin"})
+    return jsonify({"success": True, "access_token": access_token, "role": "admin"}), 200
+
+# ✅ Create a new admin
 @admin_bp.route('/admins', methods=['POST'])
 @cross_origin(origin="http://localhost:5173", supports_credentials=True)
-@jwt_required()
+@jwt_required()  # ✅ Only allow authenticated users to create admins
 def create_admin():
     data = request.get_json()
     email = data.get('email')
@@ -32,7 +47,7 @@ def create_admin():
 
     return jsonify({"message": "Admin created successfully", "admin_id": new_admin.id}), 201
 
-# Get all admins
+# ✅ Get all admins
 @admin_bp.route('/admins', methods=['GET'])
 @cross_origin(origin="http://localhost:5173", supports_credentials=True) 
 @jwt_required()
@@ -46,7 +61,7 @@ def get_admins():
     } for admin in admins]
     return jsonify(admins_data), 200
 
-# Get a specific admin by ID
+# ✅ Get a specific admin by ID
 @admin_bp.route('/admins/<int:admin_id>', methods=['GET'])
 @cross_origin(origin="http://localhost:5173", supports_credentials=True)  
 @jwt_required()
@@ -60,7 +75,7 @@ def get_admin(admin_id):
     }
     return jsonify(admin_data), 200
 
-# Update an admin
+# ✅ Update an admin
 @admin_bp.route('/admins/<int:admin_id>', methods=['PUT'])
 @cross_origin(origin="http://localhost:5173", supports_credentials=True)  
 @jwt_required()
@@ -87,7 +102,7 @@ def update_admin(admin_id):
     db.session.commit()
     return jsonify({"message": "Admin updated successfully"}), 200
 
-# Delete an admin
+# ✅ Delete an admin
 @admin_bp.route('/admins/<int:admin_id>', methods=['DELETE'])
 @cross_origin(origin="http://localhost:5173", supports_credentials=True)  
 @jwt_required()
@@ -96,3 +111,23 @@ def delete_admin(admin_id):
     db.session.delete(admin)
     db.session.commit()
     return jsonify({"message": "Admin deleted successfully"}), 200
+
+# ✅ Deactivate a user (Fixing Missing Import)
+@admin_bp.route('/users/<int:user_id>/deactivate', methods=['PATCH'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@jwt_required()
+def deactivate_user(user_id):
+    user = Student.query.get_or_404(user_id)
+    user.is_active = False
+    db.session.commit()
+    return jsonify({"message": "User deactivated successfully"}), 200
+
+# ✅ Delete a category (Fixing Missing Import)
+@admin_bp.route('/categories/<int:category_id>', methods=['DELETE'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@jwt_required()
+def delete_category(category_id):
+    category = Category.query.get_or_404(category_id)
+    db.session.delete(category)
+    db.session.commit()
+    return jsonify({"message": "Category deleted successfully"}), 200

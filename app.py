@@ -9,19 +9,25 @@ from flask_login import LoginManager
 from flask_jwt_extended import JWTManager
 from flask_dance.contrib.github import make_github_blueprint
 from werkzeug.security import generate_password_hash
-from config import Config
-from models import (
-    Admin, Student, Post, Comment, Category, Content, Subscription,
-    Wishlist, TokenBlocklist, db, Share, UserPreference
-)
-from google_auth_oauthlib.flow import Flow
-from googleapiclient.discovery import build
-from threading import Thread
-from authlib.integrations.flask_client import OAuth
-from requests_oauthlib import OAuth2Session
 from dotenv import load_dotenv
 from sqlalchemy.exc import IntegrityError
 
+# ✅ Import db (Fixed missing import)
+from models import db  
+
+# Import blueprints
+from views.auth import auth_bp
+from views.comment import comment_bp
+from views.admin import admin_bp
+from views.student import student_bp
+from views.post import post_bp
+from views.category import category_bp
+from views.content import content_bp
+from views.subscription import subscription_bp
+from views.wishlist import wishlist_bp
+from views.share import share_bp
+from views.preference import preference_bp
+from views.notification import notification_bp
 
 # Initialize extensions
 mail = Mail()
@@ -33,8 +39,7 @@ load_dotenv()
 def create_app():
     app = Flask(__name__)
 
-    oauth = OAuth(app)
-
+    # Load configuration
     app.config.from_object('config')
 
     # Database configuration
@@ -50,62 +55,29 @@ def create_app():
     app.config['MAIL_PORT'] = 587
     app.config['MAIL_USE_TLS'] = True
     app.config['MAIL_USE_SSL'] = False
-    app.config['MAIL_USERNAME'] = os.getenv("MAIL_USERNAME", "faith.nguli@student.moringaschool.com")
-    app.config['MAIL_PASSWORD'] = os.getenv("MAIL_PASSWORD", "cdcg bbtf vlxm hiea")
-    app.config['MAIL_DEFAULT_SENDER'] = os.getenv("MAIL_DEFAULT_SENDER", "faith.nguli@student.moringaschool.com")
+    app.config['MAIL_USERNAME'] = os.getenv("MAIL_USERNAME")
+    app.config['MAIL_PASSWORD'] = os.getenv("MAIL_PASSWORD")
+    app.config['MAIL_DEFAULT_SENDER'] = os.getenv("MAIL_DEFAULT_SENDER")
 
-    # CORS configuration
-    from flask_cors import CORS
-
-    CORS(app, 
-    resources={r"/*": {"origins": "http://localhost:5173"}},
-    supports_credentials=True,
-    methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "X-Requested-With"]
+    # ✅ Fixed CORS issues
+    CORS(
+    app,
+    resources={r"/*": {"origins": ["http://localhost:5173", "http://127.0.0.1:5173"]}},
+    supports_credentials=True
 )
 
+    # ✅ Initialize database and migrations
+    db.init_app(app)  
+    migrate = Migrate(app, db) 
 
-    # Initialize extensions
-    migrate = Migrate(app, db)
-    db.init_app(app)
     mail.init_app(app)
     jwt.init_app(app)
     login_manager.init_app(app)
 
-    login_manager.login_view = "github.login"
-
-    # User loader for Flask-Login
-    @login_manager.user_loader
-    def load_user(user_id):
-        student = Student.query.get(int(user_id))
-        if student:
-            return student
-        return Admin.query.get(int(user_id))
-
-    # GitHub OAuth blueprint
-    github_bp = make_github_blueprint(
-        client_id=os.getenv("GITHUB_CLIENT_ID"),
-        client_secret=os.getenv("GITHUB_CLIENT_SECRET"),
-        redirect_to="github_login"
-    )
-
-    app.register_blueprint(github_bp, url_prefix="/login")
+    login_manager.login_view = "auth_bp.google_login"
 
     # Register blueprints
-    from views.auth import auth_bp
-    from views.comment import comment_bp
-    from views.admin import admin_bp
-    from views.student import student_bp
-    from views.post import post_bp
-    from views.category import category_bp
-    from views.content import content_bp
-    from views.subscription import subscription_bp
-    from views.wishlist import wishlist_bp
-    from views.share import share_bp
-    from views.preference import preference_bp
-    from views.notification import notification_bp
-
-    app.register_blueprint(auth_bp)
+    app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(comment_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(student_bp)
@@ -123,41 +95,6 @@ def create_app():
     def check_if_token_revoked(_jwt_header, jwt_payload: dict) -> bool:
         jti = jwt_payload.get("jti")
         return db.session.query(TokenBlocklist.id).filter_by(jti=jti).scalar() is not None
-
-    # Add the /register route directly in app.py
-    @app.route('/register', methods=['POST'])
-    def register_user():
-        try:
-            data = request.json
-            print("Received registration data:", data)  
-
-            # Extract user data from the request
-            username = f"{data.get('firstName')} {data.get('lastName')}"
-            email = data.get('email')
-            password = generate_password_hash(data.get('password'))  # Hash the password
-            role = data.get('role')
-
-            # Determine if the user should be an Admin or a Student
-            if role.lower() == 'admin':
-                new_user = Admin(username=username, email=email, password=password)
-            else:
-                new_user = Student(username=username, email=email, password=password)
-
-            # Add the new user to the database
-            db.session.add(new_user)
-            db.session.commit()
-
-            return jsonify({"message": "User registered successfully!", "user": data}), 200
-
-        except IntegrityError as e:
-            db.session.rollback()  
-            print("Integrity Error:", e)
-            return jsonify({"error": "A user with this email or username already exists."}), 409
-
-        except Exception as e:
-            db.session.rollback()  
-            print("Error during registration:", e)
-            return jsonify({"error": str(e)}), 500
 
     return app
 

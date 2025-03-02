@@ -93,3 +93,38 @@ def get_content(content_id):
     }
     
     return jsonify(content_data), 200
+@content_bp.route('/content/<int:content_id>/like', methods=['POST'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@jwt_required()
+def like_content(content_id):
+    content = Content.query.get_or_404(content_id)
+    content.likes += 1
+    db.session.commit()
+    return jsonify({"message": "Content liked successfully"}), 200
+
+@content_bp.route('/content/<int:content_id>/dislike', methods=['POST'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@jwt_required()
+def dislike_content(content_id):
+    content = Content.query.get_or_404(content_id)
+    content.dislikes += 1
+    db.session.commit()
+    return jsonify({"message": "Content disliked successfully"}), 200
+
+@content_bp.route('/content/<int:content_id>/flag', methods=['POST'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@jwt_required()
+def flag_content(content_id):
+    content = Content.query.get_or_404(content_id)
+    content.is_flagged = True
+    db.session.commit()
+    return jsonify({"message": "Content flagged successfully"}), 200
+
+@content_bp.route('/content/<int:content_id>/approve', methods=['PATCH'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@jwt_required()
+def approve_content(content_id):
+    content = Content.query.get_or_404(content_id)
+    content.is_approved = True
+    db.session.commit()
+    return jsonify({"message": "Content approved successfully"}), 200
