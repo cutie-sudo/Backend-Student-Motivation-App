@@ -1,7 +1,7 @@
+import os
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import Content, Category
-from models import db
+from models import Content, Category, db
 from flask_cors import cross_origin
 
 # Define Blueprint
@@ -93,6 +93,8 @@ def get_content(content_id):
     }
     
     return jsonify(content_data), 200
+
+# Route to like content
 @content_bp.route('/content/<int:content_id>/like', methods=['POST'])
 @cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
@@ -102,6 +104,7 @@ def like_content(content_id):
     db.session.commit()
     return jsonify({"message": "Content liked successfully"}), 200
 
+# Route to dislike content
 @content_bp.route('/content/<int:content_id>/dislike', methods=['POST'])
 @cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
@@ -111,6 +114,7 @@ def dislike_content(content_id):
     db.session.commit()
     return jsonify({"message": "Content disliked successfully"}), 200
 
+# Route to flag content
 @content_bp.route('/content/<int:content_id>/flag', methods=['POST'])
 @cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
@@ -120,6 +124,7 @@ def flag_content(content_id):
     db.session.commit()
     return jsonify({"message": "Content flagged successfully"}), 200
 
+# Route to approve content
 @content_bp.route('/content/<int:content_id>/approve', methods=['PATCH'])
 @cross_origin(origin="http://localhost:5173", supports_credentials=True)
 @jwt_required()
@@ -128,3 +133,49 @@ def approve_content(content_id):
     content.is_approved = True
     db.session.commit()
     return jsonify({"message": "Content approved successfully"}), 200
+
+# NEW: Route to delete (remove) content
+@content_bp.route('/content/<int:content_id>', methods=['DELETE'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@jwt_required()
+def delete_content(content_id):
+    content = Content.query.get_or_404(content_id)
+    try:
+        db.session.delete(content)
+        db.session.commit()
+        return jsonify({"message": "Content removed successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": str(e)}), 500
+
+# Route to edit content (Update Content)
+@content_bp.route('/content/<int:content_id>', methods=['PUT'])
+@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@jwt_required()
+def edit_content(content_id):
+    content = Content.query.get_or_404(content_id)
+    data = request.get_json()
+    title = data.get("title")
+    description = data.get("description")
+    content_link = data.get("content_link")
+    content_type = data.get("content_type")
+    category_id = data.get("category_id")
+
+    if title:
+        content.title = title
+    if description:
+        content.description = description
+    if content_link:
+        content.content_link = content_link
+    if content_type:
+        content.content_type = content_type
+    if category_id:
+        # Optionally validate the category exists
+        content.category_id = category_id
+
+    try:
+        db.session.commit()
+        return jsonify({"message": "Content updated successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": str(e)}), 500

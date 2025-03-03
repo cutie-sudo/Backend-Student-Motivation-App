@@ -1,11 +1,9 @@
 from datetime import datetime
 from flask import request, jsonify, Blueprint
 from sqlalchemy.exc import IntegrityError
-from flask_jwt_extended import decode_token, get_jwt_identity, get_jwt, jwt_required
-from models import db
-from models import Comment
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from models import db, Comment
 from flask_cors import cross_origin
-
 
 comment_bp = Blueprint('comment', __name__)
 
@@ -15,9 +13,10 @@ comment_bp = Blueprint('comment', __name__)
 def add_comment():
     data = request.get_json()
     content = data.get('content')
-    student_id = get_jwt_identity()
     post_id = data.get('post_id')
-    parent_id = data.get('parent_id', None)  
+    parent_id = data.get('parent_id', None)
+    # get_jwt_identity() should return the student's id
+    student_id = get_jwt_identity()
 
     if not content or not post_id:
         return jsonify({"message": "Content and post ID are required"}), 400
@@ -58,11 +57,11 @@ def delete_comment(comment_id):
         db.session.rollback()
         return jsonify({"message": str(e)}), 500
 
-
 @comment_bp.route('/posts/<int:post_id>/comments', methods=['GET'])
 @cross_origin(origin="http://localhost:5173", supports_credentials=True)
 def get_comments(post_id):
-    comments = Comment.query.filter_by(post_id=post_id, parent_id=None).all()  
+    # Fetch top-level comments (parent_id is None)
+    comments = Comment.query.filter_by(post_id=post_id, parent_id=None).all()
     comments_data = []
 
     for comment in comments:
@@ -91,31 +90,19 @@ def get_comments(post_id):
 @jwt_required()
 def update_comment(comment_id):
     student_id = get_jwt_identity()
-    print(f"Student ID from JWT: {student_id}")  
-
-    try:
-        auth_header = request.headers.get('Authorization')
-        if auth_header:  
-            decoded_token = decode_token(auth_header.split('Bearer ')[1]) 
-            print(f"Decoded Token: {decoded_token}")  
-        else:
-            print("Authorization header is missing")
-    except Exception as e:
-        print(f"Error decoding token or missing header: {e}")
-
     comment = Comment.query.get_or_404(comment_id)
 
     if comment.student_id != student_id:
         return jsonify({"message": "Unauthorized to update this comment"}), 403
 
     data = request.get_json()
-    content = data.get('content')
+    new_content = data.get('content')
 
-    if not content:
+    if not new_content:
         return jsonify({"message": "Content is required"}), 400
 
     try:
-        comment.content = content
+        comment.content = new_content
         db.session.commit()
         return jsonify({"message": "Comment updated successfully"}), 200
     except Exception as e:

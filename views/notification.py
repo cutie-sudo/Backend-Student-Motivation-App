@@ -1,6 +1,8 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import Notification, db, Student
+def get_models():
+    from models import Notification, db, Student
+    return Notification, db, Student
 from flask_cors import cross_origin
 
 
