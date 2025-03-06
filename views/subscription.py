@@ -11,7 +11,7 @@ def get_models():
 
 
 @subscription_bp.route('/subscriptions', methods=['POST'])
-@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@cross_origin(origin="http://localhost:5173", "https://motiviationapp-d4cm.vercel.app" supports_credentials=True)
 @jwt_required()
 def subscribe():
     Subscription, Category, db = get_models()  # Import models inside function
@@ -48,7 +48,7 @@ def subscribe():
 
 
 @subscription_bp.route('/subscriptions', methods=['GET'])
-@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@cross_origin(origin="http://localhost:5173", "https://motiviationapp-d4cm.vercel.app" supports_credentials=True)
 @jwt_required()
 def get_subscriptions():
     Subscription, _, _ = get_models()  # Import models inside function
@@ -62,7 +62,7 @@ def get_subscriptions():
 
 
 @subscription_bp.route('/subscriptions/<int:subscription_id>', methods=['DELETE'])
-@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@cross_origin(origin="http://localhost:5173", "https://motiviationapp-d4cm.vercel.app" supports_credentials=True)
 @jwt_required()
 def unsubscribe(subscription_id):
     Subscription, _, db = get_models()  # Import models inside function
