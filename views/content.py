@@ -6,28 +6,26 @@ from flask_cors import cross_origin
 
 # Define Blueprint
 content_bp = Blueprint('content', __name__)
+ALLOWED_ORIGINS = ["http://localhost:5173", "https://motivationapp-d4cm.vercel.app"]
+
+# Helper function to get content by ID
+def get_content_by_id(content_id):
+    return Content.query.get_or_404(content_id)
 
 # Route to add content
 @content_bp.route('/content', methods=['POST'])
-@cross_origin(origin="*", supports_credentials=True)
+@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
 @jwt_required()
 def add_content():
     data = request.get_json()
-    title = data.get('title')
-    description = data.get('description')
-    category_id = data.get('category_id')
-    content_type = data.get('content_type')  # 'video', 'note', 'podcast'
-    content_link = data.get('content_link')  # e.g., YouTube link for videos
-
+    title, description = data.get('title'), data.get('description')
+    category_id, content_type = data.get('category_id'), data.get('content_type')
+    content_link = data.get('content_link')
+    
     current_user = get_jwt_identity()
-    admin_id = current_user.get("id")
-    role = current_user.get("role")
-
-    # Ensure the user is an admin
-    if role != "admin":
+    if current_user.get("role") != "admin":
         return jsonify({"message": "Only admins can add content"}), 403
 
-    # Validation
     if not title or not category_id or not content_type:
         return jsonify({"message": "Title, category ID, and content type are required"}), 400
 
@@ -37,20 +35,13 @@ def add_content():
     if content_type == 'note' and not description:
         return jsonify({"message": "Description is required for notes"}), 400
 
-    # Check if the category exists
-    category = Category.query.get(category_id)
-    if not category:
+    if not Category.query.get(category_id):
         return jsonify({"message": "Category not found"}), 404
 
-    # Create and save the new content
     new_content = Content(
-        title=title,
-        description=description,
-        category_id=category_id,
-        status='pending',
-        admin_id=admin_id,
-        content_type=content_type,
-        content_link=content_link
+        title=title, description=description, category_id=category_id,
+        status='pending', admin_id=current_user.get("id"),
+        content_type=content_type, content_link=content_link
     )
     db.session.add(new_content)
     db.session.commit()
@@ -59,123 +50,77 @@ def add_content():
 
 # Route to get all content
 @content_bp.route('/content', methods=['GET'])
-@cross_origin(origin="*", supports_credentials=True)
+@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
 def get_all_content():
-    contents = Content.query.all()
-    content_data = [{
-        "id": content.id,
-        "title": content.title,
-        "description": content.description,
-        "category_id": content.category_id,
-        "status": content.status,
-        "admin_id": content.admin_id,
-        "content_type": content.content_type,
-        "content_link": content.content_link
-    } for content in contents]
-    
-    return jsonify(content_data), 200
+    return jsonify([{ "id": c.id, "title": c.title, "description": c.description,
+                      "category_id": c.category_id, "status": c.status, "admin_id": c.admin_id,
+                      "content_type": c.content_type, "content_link": c.content_link} for c in Content.query.all()]), 200
 
 # Route to get specific content by ID
 @content_bp.route('/content/<int:content_id>', methods=['GET'])
-@cross_origin(origin="*", supports_credentials=True)
+@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
 @jwt_required()
 def get_content(content_id):
-    content = Content.query.get_or_404(content_id)
-    content_data = {
-        "id": content.id,
-        "title": content.title,
-        "description": content.description,
-        "category_id": content.category_id,
-        "status": content.status,
-        "admin_id": content.admin_id,
-        "content_type": content.content_type,
-        "content_link": content.content_link
-    }
-    
-    return jsonify(content_data), 200
+    content = get_content_by_id(content_id)
+    return jsonify({ "id": content.id, "title": content.title, "description": content.description,
+                     "category_id": content.category_id, "status": content.status,
+                     "admin_id": content.admin_id, "content_type": content.content_type,
+                     "content_link": content.content_link }), 200
 
-# Route to like content
-@content_bp.route('/content/<int:content_id>/like', methods=['POST'])
-@cross_origin(origin="*", supports_credentials=True)
+# Route to like/dislike content
+@content_bp.route('/content/<int:content_id>/<action>', methods=['POST'])
+@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
 @jwt_required()
-def like_content(content_id):
-    content = Content.query.get_or_404(content_id)
-    content.likes += 1
+def react_to_content(content_id, action):
+    content = get_content_by_id(content_id)
+    if action == "like":
+        content.likes += 1
+    elif action == "dislike":
+        content.dislikes += 1
+    else:
+        return jsonify({"message": "Invalid action"}), 400
     db.session.commit()
-    return jsonify({"message": "Content liked successfully"}), 200
-
-# Route to dislike content
-@content_bp.route('/content/<int:content_id>/dislike', methods=['POST'])
-@cross_origin(origin="*", supports_credentials=True)
-@jwt_required()
-def dislike_content(content_id):
-    content = Content.query.get_or_404(content_id)
-    content.dislikes += 1
-    db.session.commit()
-    return jsonify({"message": "Content disliked successfully"}), 200
+    return jsonify({"message": f"Content {action}d successfully"}), 200
 
 # Route to flag content
 @content_bp.route('/content/<int:content_id>/flag', methods=['POST'])
-@cross_origin(origin="*", supports_credentials=True)
+@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
 @jwt_required()
 def flag_content(content_id):
-    content = Content.query.get_or_404(content_id)
+    content = get_content_by_id(content_id)
     content.is_flagged = True
     db.session.commit()
     return jsonify({"message": "Content flagged successfully"}), 200
 
 # Route to approve content
 @content_bp.route('/content/<int:content_id>/approve', methods=['PATCH'])
-@cross_origin(origin="*", supports_credentials=True)
+@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
 @jwt_required()
 def approve_content(content_id):
-    content = Content.query.get_or_404(content_id)
+    content = get_content_by_id(content_id)
     content.is_approved = True
     db.session.commit()
     return jsonify({"message": "Content approved successfully"}), 200
 
-# NEW: Route to delete (remove) content
+# Route to delete content
 @content_bp.route('/content/<int:content_id>', methods=['DELETE'])
-@cross_origin(origin="*", supports_credentials=True)
+@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
 @jwt_required()
 def delete_content(content_id):
-    content = Content.query.get_or_404(content_id)
-    try:
-        db.session.delete(content)
-        db.session.commit()
-        return jsonify({"message": "Content removed successfully"}), 200
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"message": str(e)}), 500
+    content = get_content_by_id(content_id)
+    db.session.delete(content)
+    db.session.commit()
+    return jsonify({"message": "Content removed successfully"}), 200
 
-# Route to edit content (Update Content)
+# Route to edit content
 @content_bp.route('/content/<int:content_id>', methods=['PUT'])
-@cross_origin(origin="*", supports_credentials=True)
+@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
 @jwt_required()
 def edit_content(content_id):
-    content = Content.query.get_or_404(content_id)
+    content = get_content_by_id(content_id)
     data = request.get_json()
-    title = data.get("title")
-    description = data.get("description")
-    content_link = data.get("content_link")
-    content_type = data.get("content_type")
-    category_id = data.get("category_id")
-
-    if title:
-        content.title = title
-    if description:
-        content.description = description
-    if content_link:
-        content.content_link = content_link
-    if content_type:
-        content.content_type = content_type
-    if category_id:
-        # Optionally validate the category exists
-        content.category_id = category_id
-
-    try:
-        db.session.commit()
-        return jsonify({"message": "Content updated successfully"}), 200
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"message": str(e)}), 500
+    for field in ["title", "description", "content_link", "content_type", "category_id"]:
+        if field in data:
+            setattr(content, field, data[field])
+    db.session.commit()
+    return jsonify({"message": "Content updated successfully"}), 200
