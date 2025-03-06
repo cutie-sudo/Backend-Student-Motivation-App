@@ -11,7 +11,7 @@ admin_bp = Blueprint('admin', __name__)
 # Admin Login Route
 # -------------------------
 @admin_bp.route('/admin/login', methods=['POST'])
-@cross_origin(origin="http://localhost:5173", "https://motiviationapp-d4cm.vercel.app", supports_credentials=True)
+@cross_origin(origins=["http://localhost:5173", "https://motiviationapp-d4cm.vercel.app"], supports_credentials=True)
 def admin_login():
     data = request.get_json()
     email = data.get("email")
@@ -28,7 +28,7 @@ def admin_login():
 # Create a New Admin
 # -------------------------
 @admin_bp.route('/admins', methods=['POST'])
-@cross_origin(origin="http://localhost:5173", "https://motiviationapp-d4cm.vercel.app", supports_credentials=True)
+@cross_origin(origins=["http://localhost:5173", "https://motiviationapp-d4cm.vercel.app"], supports_credentials=True)
 @jwt_required()  # Only allow authenticated users to create admins
 def create_admin():
     data = request.get_json()
@@ -55,7 +55,7 @@ def create_admin():
 # Get All Admins
 # -------------------------
 @admin_bp.route('/admins', methods=['GET'])
-@cross_origin(origin="http://localhost:5173", "https://motiviationapp-d4cm.vercel.app", supports_credentials=True) 
+@cross_origin(origins=["http://localhost:5173", "https://motiviationapp-d4cm.vercel.app"], supports_credentials=True) 
 @jwt_required()
 def get_admins():
     admins = Admin.query.all()
@@ -71,7 +71,7 @@ def get_admins():
 # Get a Specific Admin by ID
 # -------------------------
 @admin_bp.route('/admins/<int:admin_id>', methods=['GET'])
-@cross_origin(origin="http://localhost:5173", "https://motiviationapp-d4cm.vercel.app", supports_credentials=True)  
+@cross_origin(origins=["http://localhost:5173", "https://motiviationapp-d4cm.vercel.app"], supports_credentials=True)  
 @jwt_required()
 def get_admin(admin_id):
     admin = Admin.query.get_or_404(admin_id)
@@ -87,7 +87,7 @@ def get_admin(admin_id):
 # Update an Admin
 # -------------------------
 @admin_bp.route('/admins/<int:admin_id>', methods=['PUT'])
-@cross_origin(origin="http://localhost:5173", "https://motiviationapp-d4cm.vercel.app", supports_credentials=True)  
+@cross_origin(origins=["http://localhost:5173", "https://motiviationapp-d4cm.vercel.app"], supports_credentials=True)  
 @jwt_required()
 def update_admin(admin_id):
     data = request.get_json()
@@ -116,7 +116,7 @@ def update_admin(admin_id):
 # Delete an Admin
 # -------------------------
 @admin_bp.route('/admins/<int:admin_id>', methods=['DELETE'])
-@cross_origin(origin="http://localhost:5173", "https://motiviationapp-d4cm.vercel.app", supports_credentials=True)  
+@cross_origin(origins=["http://localhost:5173", "https://motiviationapp-d4cm.vercel.app"], supports_credentials=True)  
 @jwt_required()
 def delete_admin(admin_id):
     admin = Admin.query.get_or_404(admin_id)
@@ -128,7 +128,7 @@ def delete_admin(admin_id):
 # Deactivate a User (Student or Admin)
 # -------------------------
 @admin_bp.route('/users/<int:user_id>/deactivate', methods=['PATCH'])
-@cross_origin(origin="http://localhost:5173", "https://motiviationapp-d4cm.vercel.app", supports_credentials=True)
+@cross_origin(origins=["http://localhost:5173", "https://motiviationapp-d4cm.vercel.app"], supports_credentials=True)
 @jwt_required()
 def deactivate_user(user_id):
     # First try to find as a Student; if not found, try Admin.
@@ -144,7 +144,7 @@ def deactivate_user(user_id):
 # Delete a Category
 # -------------------------
 @admin_bp.route('/categories/<int:category_id>', methods=['DELETE'])
-@cross_origin(origin="http://localhost:5173", "https://motiviationapp-d4cm.vercel.app", supports_credentials=True)
+@cross_origin(origins=["http://localhost:5173", "https://motiviationapp-d4cm.vercel.app"], supports_credentials=True)
 @jwt_required()
 def delete_category(category_id):
     category = Category.query.get_or_404(category_id)
