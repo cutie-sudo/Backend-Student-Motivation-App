@@ -39,6 +39,23 @@ def create_app():
 
     # Load configuration from config.py
     app.config.from_object('config.Config')
+    app.config["SECRET_KEY"] = ("SECRET_KEY", "yes12")
+    app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://motivationdb_user:D1dnwxcDXjv0lk53Q2yTPQwElMoCCpCh@dpg-cv4vedl2ng1s73fksr0g-a.oregon-postgres.render.com/motivationdb"
+    app.config["JWT_SECRET_KEY"] = "JWT_SECRET_KEY", "yes12"
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=24)
+
+
+    app.config["MAIL_SERVER"]= "smtp.gmail.com"
+    app.config["MAIL_PORT"] =587
+    app.config["MAIL_USE_TLS"] ="True"
+    app.config["MAIL_USE_SSL"]="FALSE"
+    app.config["MAIL_USERNAME"] ="faith.nguli@student.moringaschool.com"
+    app.config["MAIL_PASSWORD"] ="cdcg_bbtf_vlxm_hiea"
+    app.config["MAIL_DEFAULT_SENDER"] = "faith.nguli@student.moringaschool.com"
+
+
+
+
 
     # CORS configuration: allow frontend URL with credentials
     CORS(app, supports_credentials=True, origins=[app.config.get("FRONTEND_URL", "http://localhost:5173")])
@@ -88,3 +105,4 @@ def create_app():
 if __name__ == '__main__':
     app = create_app()
     app.run(debug=True, host='127.0.0.1', port=5000)
+    app.run()

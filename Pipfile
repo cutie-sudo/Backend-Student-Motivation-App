@@ -4,7 +4,6 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-psycopg2-binary = "*"
 cloudinary = "*"
 virtualenv = "*"
 flask = "*"
@@ -26,6 +25,8 @@ oauthlib = "*"
 requests-oauthlib = "*"
 pytest = "*"
 flask-testing = "*"
+psycopg2-binary = "*"
+gunicorn = "*"
 
 [dev-packages]
 

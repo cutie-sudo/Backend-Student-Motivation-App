@@ -6,7 +6,7 @@ load_dotenv()  # Ensure environment variables are loaded
 
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'yes12')
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///motivation.db'
+    SQLALCHEMY_DATABASE_URI = 'postgresql://motivationdb_user:D1dnwxcDXjv0lk53Q2yTPQwElMoCCpCh@dpg-cv4vedl2ng1s73fksr0g-a.oregon-postgres.render.com/motivationdb'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'yes12')
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
