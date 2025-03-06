@@ -39,7 +39,7 @@ def create_app():
 
     # Load configuration from config.py
     app.config.from_object('config.Config')
-    app.config["SECRET_KEY"] = ("SECRET_KEY", "yes12")
+    app.config["SECRET_KEY"] = "yes12"
     app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://motivationdb_user:D1dnwxcDXjv0lk53Q2yTPQwElMoCCpCh@dpg-cv4vedl2ng1s73fksr0g-a.oregon-postgres.render.com/motivationdb"
     app.config["JWT_SECRET_KEY"] = "JWT_SECRET_KEY", "yes12"
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=24)
