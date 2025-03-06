@@ -7,17 +7,19 @@ from flask_cors import cross_origin
 
 comment_bp = Blueprint('comment', __name__)
 
+ALLOWED_ORIGINS = ["http://localhost:5173", "https://motiviationapp-d4cm.vercel.app"]
+
 @comment_bp.route('/comments', methods=['POST'])
-@cross_origin(origin="http://localhost:5173", "https://motiviationapp-d4cm.vercel.app", supports_credentials=True)
+@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
 @jwt_required()
 def add_comment():
     data = request.get_json()
     content = data.get('content')
     post_id = data.get('post_id')
     parent_id = data.get('parent_id', None)
-    # get_jwt_identity() should return the student's id
     student = get_jwt_identity()
-    student_id = student["id"]
+    student_id = student.get("id")
+    
     if not content or not post_id:
         return jsonify({"message": "Content and post ID are required"}), 400
 
@@ -40,11 +42,11 @@ def add_comment():
         return jsonify({"message": str(e)}), 500
 
 @comment_bp.route('/comments/<int:comment_id>', methods=['DELETE'])
-@cross_origin(origin="http://localhost:5173", "https://motiviationapp-d4cm.vercel.app", supports_credentials=True)
+@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
 @jwt_required()
 def delete_comment(comment_id):
     student = get_jwt_identity()
-    student_id = student["id"]
+    student_id = student.get("id")
     comment = Comment.query.get_or_404(comment_id)
 
     if comment.student_id != student_id:
@@ -59,9 +61,8 @@ def delete_comment(comment_id):
         return jsonify({"message": str(e)}), 500
 
 @comment_bp.route('/posts/<int:post_id>/comments', methods=['GET'])
-@cross_origin(origin="http://localhost:5173", "https://motiviationapp-d4cm.vercel.app", supports_credentials=True)
+@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
 def get_comments(post_id):
-    # Fetch top-level comments (parent_id is None)
     comments = Comment.query.filter_by(post_id=post_id, parent_id=None).all()
     comments_data = []
 
@@ -87,11 +88,11 @@ def get_comments(post_id):
     return jsonify(comments_data), 200
 
 @comment_bp.route('/comments/<int:comment_id>', methods=['PUT'])
-@cross_origin(origin="http://localhost:5173", "https://motiviationapp-d4cm.vercel.app", supports_credentials=True)
+@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
 @jwt_required()
 def update_comment(comment_id):
     student = get_jwt_identity()
-    student_id = student["id"]
+    student_id = student.get("id")
     comment = Comment.query.get_or_404(comment_id)
 
     if comment.student_id != student_id:
