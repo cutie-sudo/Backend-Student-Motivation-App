@@ -3,16 +3,14 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import Student, db, Post, Wishlist
 from flask_cors import cross_origin
 
-
-
 wishlist_bp = Blueprint('wishlist', __name__)
 
-
 @wishlist_bp.route('/wishlist', methods=['POST'])
-@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@cross_origin(origin="*", supports_credentials=True)
 @jwt_required()
 def add_to_wishlist():
-    student_id = get_jwt_identity()  # Get logged-in student's ID
+    student = get_jwt_identity()  # Get logged-in student's ID
+    student_id = student["id"]
     data = request.get_json()
     post_id = data.get('post_id')
 
@@ -42,22 +40,40 @@ def add_to_wishlist():
     return jsonify({"message": "Added to wishlist successfully", "wishlist_id": wishlist_item.id}), 201
 
 @wishlist_bp.route('/wishlist', methods=['GET'])
-@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@cross_origin(origin="*", supports_credentials=True)
 @jwt_required()
 def get_wishlist():
-    student_id = get_jwt_identity()
+    student = get_jwt_identity()
+    student_id = student["id"]
     wishlist_items = Wishlist.query.filter_by(student_id=student_id).all()
     
-    return jsonify([{
-        "wishlist_id": item.id,
-        "post_id": item.post_id
-    } for item in wishlist_items]), 200
+    wishlist_data = []
+    for item in wishlist_items:
+        post = Post.query.get(item.post_id)
+        if post:
+            wishlist_data.append({
+                "wishlist_id": item.id,
+                "post_id": post.id,
+                "title": post.title,
+                "content": post.content,
+                "category_id": post.category_id,
+                "admin_id": post.admin_id,
+                "student_id": post.student_id,
+                "created_at": post.created_at,
+                "is_approved": post.is_approved,
+                "is_flagged": post.is_flagged,
+                "likes": post.likes,
+                "dislikes": post.dislikes
+            })
+    
+    return jsonify(wishlist_data), 200
 
 @wishlist_bp.route('/wishlist/<int:wishlist_id>', methods=['DELETE'])
-@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@cross_origin(origin="*", supports_credentials=True)
 @jwt_required()
 def remove_from_wishlist(wishlist_id):
-    student_id = get_jwt_identity()
+    student = get_jwt_identity()
+    student_id = student["id"]
     wishlist_item = Wishlist.query.get_or_404(wishlist_id)
     
     if wishlist_item.student_id != student_id:

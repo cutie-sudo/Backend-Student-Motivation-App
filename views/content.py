@@ -9,7 +9,7 @@ content_bp = Blueprint('content', __name__)
 
 # Route to add content
 @content_bp.route('/content', methods=['POST'])
-@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@cross_origin(origin="*", supports_credentials=True)
 @jwt_required()
 def add_content():
     data = request.get_json()
@@ -59,7 +59,7 @@ def add_content():
 
 # Route to get all content
 @content_bp.route('/content', methods=['GET'])
-@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@cross_origin(origin="*", supports_credentials=True)
 def get_all_content():
     contents = Content.query.all()
     content_data = [{
@@ -77,7 +77,7 @@ def get_all_content():
 
 # Route to get specific content by ID
 @content_bp.route('/content/<int:content_id>', methods=['GET'])
-@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@cross_origin(origin="*", supports_credentials=True)
 @jwt_required()
 def get_content(content_id):
     content = Content.query.get_or_404(content_id)
@@ -96,7 +96,7 @@ def get_content(content_id):
 
 # Route to like content
 @content_bp.route('/content/<int:content_id>/like', methods=['POST'])
-@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@cross_origin(origin="*", supports_credentials=True)
 @jwt_required()
 def like_content(content_id):
     content = Content.query.get_or_404(content_id)
@@ -106,7 +106,7 @@ def like_content(content_id):
 
 # Route to dislike content
 @content_bp.route('/content/<int:content_id>/dislike', methods=['POST'])
-@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@cross_origin(origin="*", supports_credentials=True)
 @jwt_required()
 def dislike_content(content_id):
     content = Content.query.get_or_404(content_id)
@@ -116,7 +116,7 @@ def dislike_content(content_id):
 
 # Route to flag content
 @content_bp.route('/content/<int:content_id>/flag', methods=['POST'])
-@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@cross_origin(origin="*", supports_credentials=True)
 @jwt_required()
 def flag_content(content_id):
     content = Content.query.get_or_404(content_id)
@@ -126,7 +126,7 @@ def flag_content(content_id):
 
 # Route to approve content
 @content_bp.route('/content/<int:content_id>/approve', methods=['PATCH'])
-@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@cross_origin(origin="*", supports_credentials=True)
 @jwt_required()
 def approve_content(content_id):
     content = Content.query.get_or_404(content_id)
@@ -136,7 +136,7 @@ def approve_content(content_id):
 
 # NEW: Route to delete (remove) content
 @content_bp.route('/content/<int:content_id>', methods=['DELETE'])
-@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@cross_origin(origin="*", supports_credentials=True)
 @jwt_required()
 def delete_content(content_id):
     content = Content.query.get_or_404(content_id)
@@ -150,7 +150,7 @@ def delete_content(content_id):
 
 # Route to edit content (Update Content)
 @content_bp.route('/content/<int:content_id>', methods=['PUT'])
-@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@cross_origin(origin="*", supports_credentials=True)
 @jwt_required()
 def edit_content(content_id):
     content = Content.query.get_or_404(content_id)
