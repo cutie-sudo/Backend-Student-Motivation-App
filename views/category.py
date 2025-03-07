@@ -5,7 +5,7 @@ from flask_cors import cross_origin
 
 category_bp = Blueprint('category', __name__)
 
-ALLOWED_ORIGINS = ["http://localhost:5173", "https://motiviationapp-d4cm.vercel.app"]
+ALLOWED_ORIGINS = ["https://students-motiviation-app.vercel.app"]
 
 # Add a new category
 @category_bp.route('/categories', methods=['POST'])

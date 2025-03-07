@@ -7,7 +7,7 @@ from flask_cors import cross_origin
 
 comment_bp = Blueprint('comment', __name__)
 
-ALLOWED_ORIGINS = ["http://localhost:5173", "https://motiviationapp-d4cm.vercel.app"]
+ALLOWED_ORIGINS = ["https://students-motiviation-app.vercel.app"]
 
 @comment_bp.route('/comments', methods=['POST'])
 @cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
