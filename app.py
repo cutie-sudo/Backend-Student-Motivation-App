@@ -34,24 +34,22 @@ login_manager = LoginManager()
 
 load_dotenv()
 
-# def create_app():
+def create_app():
     app = Flask(__name__)
 
     # Load configuration from config.py
-    app.config.from_object('config.Config')
-    app.config["SECRET_KEY"] = "yes12"
-    app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://motivationdb_user:D1dnwxcDXjv0lk53Q2yTPQwElMoCCpCh@dpg-cv4vedl2ng1s73fksr0g-a.oregon-postgres.render.com/motivationdb"
-    app.config["JWT_SECRET_KEY"] = "JWT_SECRET_KEY", "yes12"
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "your_default_secret_key")
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
+    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "your_jwt_secret")
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=24)
 
-
-    app.config["MAIL_SERVER"]= "smtp.gmail.com"
-    app.config["MAIL_PORT"] =587
-    app.config["MAIL_USE_TLS"] ="True"
-    app.config["MAIL_USE_SSL"]="FALSE"
-    app.config["MAIL_USERNAME"] ="faith.nguli@student.moringaschool.com"
-    app.config["MAIL_PASSWORD"] ="cdcg_bbtf_vlxm_hiea"
-    app.config["MAIL_DEFAULT_SENDER"] = "faith.nguli@student.moringaschool.com"
+    # Mail configuration from environment variables
+    app.config["MAIL_SERVER"] = "smtp.gmail.com"
+    app.config["MAIL_PORT"] = 587
+    app.config["MAIL_USE_TLS"] = True
+    app.config["MAIL_USERNAME"] = os.getenv("MAIL_USERNAME")
+    app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
+    app.config["MAIL_DEFAULT_SENDER"] = os.getenv("MAIL_DEFAULT_SENDER")
 
 
 
@@ -103,6 +101,5 @@ load_dotenv()
     return app
 
 if __name__ == '__main__':
-    # app = create_app()
-
-    app.run()
+    app = create_app()
+  
