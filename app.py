@@ -62,7 +62,7 @@ def create_app():
     login_manager.login_view = "auth_bp.google_login"
 
     # Register blueprints
-    app.register_blueprint(auth_bp, url_prefix="/auth")
+    app.register_blueprint(auth_bp)
     app.register_blueprint(comment_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(student_bp)
