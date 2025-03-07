@@ -88,7 +88,7 @@ def signup():
         lastName = data.get("lastName")
         email = data.get("email")
         password = data.get("password")
-        role = data.get("role", "student").lower()
+        role = data.get("role", "student").lower() 
 
         if not all([firstName, lastName, email, password]):
             return jsonify({"success": False, "error": "Missing required fields."}), 400
