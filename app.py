@@ -8,7 +8,6 @@ from flask_cors import CORS
 from flask_login import LoginManager
 from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
-from views.profile import profile_bp
 
 # Import db and TokenBlocklist from models
 from models import db, TokenBlocklist
@@ -26,6 +25,7 @@ from views.wishlist import wishlist_bp
 from views.share import share_bp
 from views.preference import preference_bp
 from views.notification import notification_bp
+from views.profile import profile_bp
 
 # Initialize extensions
 mail = Mail()
@@ -37,13 +37,13 @@ load_dotenv()
 def create_app():
     app = Flask(__name__)
 
-    # Load configuration from config.py
+    # Load configuration from environment variables
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "your_default_secret_key")
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "your_jwt_secret")
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=24)
 
-    # Mail configuration from environment variables
+    # Mail configuration
     app.config["MAIL_SERVER"] = "smtp.gmail.com"
     app.config["MAIL_PORT"] = 587
     app.config["MAIL_USE_TLS"] = True
@@ -51,17 +51,12 @@ def create_app():
     app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
     app.config["MAIL_DEFAULT_SENDER"] = os.getenv("MAIL_DEFAULT_SENDER")
 
-
-
-
-
     # CORS configuration: allow frontend URL with credentials
     CORS(app, supports_credentials=True, origins=[app.config.get("FRONTEND_URL", "motiviationapp-d4cm.vercel.app")])
 
-    # Initialize database and migrations
+    # Initialize extensions
     db.init_app(app)
     migrate = Migrate(app, db)
-
     mail.init_app(app)
     jwt.init_app(app)
     login_manager.init_app(app)
@@ -98,8 +93,7 @@ def create_app():
     def internal_server_error(error):
         return jsonify({"error": "Internal server error"}), 500
 
-    return app
+    return app  # ✅ Correct, return the app **without any extra code after this line**
 
-
-    app = create_app()
-  
+# Create the app instance for Gunicorn
+app = create_app()
