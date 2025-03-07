@@ -76,7 +76,7 @@ def google_login():
 
 # Local Signup Route with CORS handling
 @auth_bp.route("/signup", methods=["POST", "OPTIONS"])
-@cross_origin(origins=["http://localhost:5173", "http://127.0.0.1:5173", "https://motiviationapp-d4cm.vercel.app"], supports_credentials=True)
+@cross_origin(origins=["https://motiviationapp-d4cm.vercel.app"], supports_credentials=True)
 def signup():
     # Handle Preflight (OPTIONS request) if needed
     if request.method == "OPTIONS":
