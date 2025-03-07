@@ -10,7 +10,7 @@ from werkzeug.security import generate_password_hash
 from sqlalchemy.exc import IntegrityError
 
 # Get the absolute path to the Firebase service account JSON file
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.abspath(_file))  # Fixed typo: _file -> _file_
 FIREBASE_CREDENTIALS_PATH = os.path.join(BASE_DIR, "../firebase-service-account.json")
 
 # Initialize Firebase Admin SDK only if not already initialized
@@ -22,7 +22,7 @@ if not firebase_admin._apps:
     cred = credentials.Certificate(FIREBASE_CREDENTIALS_PATH)
     firebase_admin.initialize_app(cred)
 
-auth_bp = Blueprint("auth_bp", __name__)
+auth_bp = Blueprint("auth_bp", _name)  # Fixed typo: _name -> _name_
 
 # ---------------------------------------------------
 # No more add_cors_headers function — we rely on @cross_origin
@@ -76,7 +76,7 @@ def google_login():
 
 # Local Signup Route with CORS handling
 @auth_bp.route("/signup", methods=["POST", "OPTIONS"])
-@cross_origin(origins=["https://motiviationapp-d4cm.vercel.app"], supports_credentials=True)
+@cross_origin(origins=["https://motiviationapp-d4cm.vercel.app", "http://localhost:5173"], supports_credentials=True)
 def signup():
     # Handle Preflight (OPTIONS request) if needed
     if request.method == "OPTIONS":
@@ -109,7 +109,20 @@ def signup():
         db.session.add(user)
         db.session.commit()
 
-        return jsonify({"success": True, "message": "User registered successfully!"}), 200
+        # Create an access token for the newly registered user
+        access_token = create_access_token(identity={"id": user.id, "role": role})
+
+        return jsonify({
+            "success": True,
+            "message": "User registered successfully!",
+            "data": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "role": role
+            },
+            "access_token": access_token  # Return the access token
+        }), 200
 
     except IntegrityError:
         db.session.rollback()
@@ -118,9 +131,15 @@ def signup():
         db.session.rollback()
         return jsonify({"success": False, "error": str(e)}), 500
 
-@auth_bp.route("/profile", methods=["GET"])
-@cross_origin(origins=["https://motiviationapp-d4cm.vercel.app"], supports_credentials=True)
+
+# Profile Route with CORS handling
+@auth_bp.route("/profile", methods=["GET", "OPTIONS"])
+@cross_origin(origins=["https://motiviationapp-d4cm.vercel.app", "http://localhost:5173"], supports_credentials=True)
 def profile():
+    # Handle Preflight (OPTIONS request) if needed
+    if request.method == "OPTIONS":
+        return jsonify({"message": "CORS preflight successful"}), 200
+
     try:
         # Extract token from Authorization header
         auth_header = request.headers.get("Authorization")
