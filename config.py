@@ -18,4 +18,4 @@ class Config:
     MAIL_USERNAME = os.getenv('MAIL_USERNAME', 'faith.nguli@student.moringaschool.com')
     MAIL_PASSWORD = os.getenv('MAIL_PASSWORD', 'cdcg_bbtf_vlxm_hiea')
     MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER', 'faith.nguli@student.moringaschool.com')
-    FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+    FRONTEND_URL = os.getenv('FRONTEND_URL', 'motiviationapp-d4cm.vercel.app')

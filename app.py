@@ -34,7 +34,7 @@ login_manager = LoginManager()
 
 load_dotenv()
 
-def create_app():
+# def create_app():
     app = Flask(__name__)
 
     # Load configuration from config.py
@@ -58,7 +58,7 @@ def create_app():
 
 
     # CORS configuration: allow frontend URL with credentials
-    CORS(app, supports_credentials=True, origins=[app.config.get("FRONTEND_URL", "http://localhost:5173")])
+    CORS(app, supports_credentials=True, origins=[app.config.get("FRONTEND_URL", "motiviationapp-d4cm.vercel.app")])
 
     # Initialize database and migrations
     db.init_app(app)
@@ -103,6 +103,6 @@ def create_app():
     return app
 
 if __name__ == '__main__':
-    app = create_app()
-    app.run(debug=True, host='127.0.0.1', port=5000)
+    # app = create_app()
+
     app.run()
