@@ -9,10 +9,7 @@ from flask_login import LoginManager
 from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
 
-# Import db and TokenBlocklist from models
 from models import db, TokenBlocklist
-
-# Import blueprints
 from views.auth import auth_bp
 from views.comment import comment_bp
 from views.admin import admin_bp
@@ -51,12 +48,12 @@ def create_app():
     app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
     app.config["MAIL_DEFAULT_SENDER"] = os.getenv("MAIL_DEFAULT_SENDER")
 
-    # CORS configuration: allow frontend URL with credentials
+    # CORS configuration
     CORS(app, supports_credentials=True, origins=[app.config.get("FRONTEND_URL", "motiviationapp-d4cm.vercel.app")])
 
     # Initialize extensions
     db.init_app(app)
-    migrate = Migrate(app, db)
+    Migrate(app, db)
     mail.init_app(app)
     jwt.init_app(app)
     login_manager.init_app(app)
@@ -76,7 +73,7 @@ def create_app():
     app.register_blueprint(share_bp)
     app.register_blueprint(preference_bp)
     app.register_blueprint(notification_bp)
-    app.register_blueprint(profile_bp, url_prefix="")  # profile_bp registers routes like /profile and /profile/picture
+    app.register_blueprint(profile_bp, url_prefix="")
 
     # Token blocklist check
     @jwt.token_in_blocklist_loader
@@ -95,5 +92,7 @@ def create_app():
 
     return app  # ✅ Correct, return the app **without any extra code after this line**
 
-# Create the app instance for Gunicorn
-app = create_app()
+# ✅ Only for local development
+if __name__ == "__main__":
+    app = create_app()
+    app.run(debug=True)
