@@ -8,6 +8,7 @@ from flask_cors import CORS
 from flask_login import LoginManager
 from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
+from flask import send_from_directory
 
 from models import db, TokenBlocklist
 from views.auth import auth_bp
@@ -89,6 +90,10 @@ def create_app():
     @app.errorhandler(500)
     def internal_server_error(error):
         return jsonify({"error": "Internal server error"}), 500
+
+    @app.route('/images/<path:filename>')
+    def serve_static_images(filename):
+        return send_from_directory('static/images', filename)
 
     return app  # ✅ Correct, return the app **without any extra code after this line**
 
