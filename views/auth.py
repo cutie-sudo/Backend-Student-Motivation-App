@@ -22,7 +22,7 @@ if not firebase_admin._apps:
     cred = credentials.Certificate(FIREBASE_CREDENTIALS_PATH)
     firebase_admin.initialize_app(cred)
 
-auth_bp = Blueprint("auth_bp", _name)  # Fixed typo: _name -> _name_
+auth_bp = Blueprint("auth_bp", __name__)  # Fixed typo: _name -> _name_
 
 # ---------------------------------------------------
 # No more add_cors_headers function — we rely on @cross_origin
