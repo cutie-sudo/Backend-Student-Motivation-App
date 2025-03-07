@@ -10,7 +10,7 @@ from werkzeug.security import generate_password_hash
 from sqlalchemy.exc import IntegrityError
 
 # Get the absolute path to the Firebase service account JSON file
-BASE_DIR = os.path.dirname(os.path.abspath(_file))  # Fixed typo: _file -> _file_
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Fixed typo: _file -> _file_
 FIREBASE_CREDENTIALS_PATH = os.path.join(BASE_DIR, "../firebase-service-account.json")
 
 # Initialize Firebase Admin SDK only if not already initialized
