@@ -50,7 +50,11 @@ def create_app():
     app.config["MAIL_DEFAULT_SENDER"] = os.getenv("MAIL_DEFAULT_SENDER")
 
     # CORS configuration
-    CORS(app, supports_credentials=True, origins=[app.config.get("FRONTEND_URL", "motiviationapp-d4cm.vercel.app")])
+    CORS(
+        app,
+        supports_credentials=True,
+        origins=["https://students-motiviation-app.vercel.app"]  # Allow your frontend origin
+    )
 
     # Initialize extensions
     db.init_app(app)
@@ -95,7 +99,16 @@ def create_app():
     def serve_static_images(filename):
         return send_from_directory('static/images', filename)
 
-    return app  # ✅ Correct, return the app **without any extra code after this line**
+    # Add CORS headers to every response
+    @app.after_request
+    def add_cors_headers(response):
+        response.headers["Access-Control-Allow-Origin"] = "https://students-motiviation-app.vercel.app"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
+
+    return app
 
 # ✅ Only for local development
 if __name__ == "__main__":

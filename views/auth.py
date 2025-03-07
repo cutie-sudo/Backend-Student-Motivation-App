@@ -117,3 +117,39 @@ def signup():
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "error": str(e)}), 500
+
+@auth_bp.route("/profile", methods=["GET"])
+@cross_origin(origins=["https://motiviationapp-d4cm.vercel.app"], supports_credentials=True)
+def profile():
+    try:
+        # Extract token from Authorization header
+        auth_header = request.headers.get("Authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            return jsonify({"success": False, "error": "Missing or invalid token"}), 401
+
+        token = auth_header.split(" ")[1]
+        decoded_token = firebase_auth.verify_id_token(token)
+
+        email = decoded_token.get("email")
+        role = "student"
+        user = Student.query.filter_by(email=email).first()
+
+        if email.endswith('@admin.moringaschool.com'):
+            role = "admin"
+            user = Admin.query.filter_by(email=email).first()
+
+        if not user:
+            return jsonify({"success": False, "error": "User not found"}), 404
+
+        return jsonify({
+            "success": True,
+            "data": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "role": role
+            }
+        }), 200
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
