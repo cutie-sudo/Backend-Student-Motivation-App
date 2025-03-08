@@ -108,6 +108,13 @@ def create_app():
         app.logger.info(f"404 error: {request.path}")
         return jsonify({"error": "Not found"}), 404
 
+    @app.after_request
+    def after_request(response):
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        return response
+
     @app.errorhandler(500)
     def internal_server_error(error):
         app.logger.error(f"500 error: {str(error)}")
