@@ -16,7 +16,7 @@ from views.auth import auth_bp  # Example import for blueprints
 from views.comment import comment_bp
 from views.admin import admin_bp
 from views.student import student_bp
-from views.posts import post_bp
+from views.post import post_bp
 from views.category import category_bp
 from views.content import content_bp
 from views.subscription import subscription_bp
