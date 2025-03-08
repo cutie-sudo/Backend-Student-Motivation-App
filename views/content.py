@@ -14,7 +14,7 @@ def get_content_by_id(content_id):
 
 # Route to add content
 @content_bp.route('/content', methods=['POST'])
-@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
 def add_content():
     data = request.get_json()
