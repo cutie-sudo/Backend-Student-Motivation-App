@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from flask import send_from_directory
 import logging
 
-from models import db, TokenBlocklist
+from models import db, TokenBlocklist, Student, Admin, Post, Content, Comment, Category, Wishlist
 from views.auth import auth_bp
 from views.comment import comment_bp
 from views.admin import admin_bp
