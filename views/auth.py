@@ -88,7 +88,7 @@ def signup():
         lastName = data.get("lastName")
         email = data.get("email")
         password = data.get("password")
-        role = data.get("role", "student").lower() 
+        role = data.get("role", "student").lower()
 
         if not all([firstName, lastName, email, password]):
             return jsonify({"success": False, "error": "Missing required fields."}), 400
@@ -130,7 +130,6 @@ def signup():
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "error": str(e)}), 500
-
 
 # Profile Route with CORS handling
 @auth_bp.route("/profile", methods=["GET", "OPTIONS"])
