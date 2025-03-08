@@ -13,17 +13,17 @@ import logging
 import os
 
 from views.auth import auth_bp  # Example import for blueprints
-from views.comments import comment_bp
+from views.comment import comment_bp
 from views.admin import admin_bp
-from views.students import student_bp
+from views.student import student_bp
 from views.posts import post_bp
-from views.categories import category_bp
+from views.category import category_bp
 from views.content import content_bp
-from views.subscriptions import subscription_bp
+from views.subscription import subscription_bp
 from views.wishlist import wishlist_bp
 from views.share import share_bp
-from views.preferences import preference_bp
-from views.notifications import notification_bp
+from views.preference import preference_bp
+from views.notification import notification_bp
 from views.profile import profile_bp
 
 # Initialize extensions
