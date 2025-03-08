@@ -78,9 +78,14 @@ def google_login():
 @auth_bp.route("/signup", methods=["POST", "OPTIONS"])
 @cross_origin(origins=["https://students-motiviation-app-vkmx.vercel.app"], supports_credentials=True)
 def signup():
-    # Handle Preflight (OPTIONS request) if needed
     if request.method == "OPTIONS":
-        return jsonify({"message": "CORS preflight successful"}), 200
+        response = jsonify({"message": "CORS preflight successful"})
+        response.headers.add("Access-Control-Allow-Origin", "https://students-motiviation-app-vkmx.vercel.app")
+        response.headers.add("Access-Control-Allow-Methods", "POST, OPTIONS")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        response.headers.add("Access-Control-Allow-Credentials", "true")
+        return response
+    
 
     try:
         data = request.get_json()
