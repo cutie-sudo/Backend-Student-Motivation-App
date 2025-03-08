@@ -1,4 +1,3 @@
-import os
 from datetime import timedelta
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
@@ -10,21 +9,7 @@ from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
 from flask import send_from_directory
 import logging
-
-from models import db, TokenBlocklist, Student, Admin, Post, Content, Comment, Category, Wishlist
-from views.auth import auth_bp
-from views.comment import comment_bp
-from views.admin import admin_bp
-from views.student import student_bp
-from views.post import post_bp
-from views.category import category_bp
-from views.content import content_bp
-from views.subscription import subscription_bp
-from views.wishlist import wishlist_bp
-from views.share import share_bp
-from views.preference import preference_bp
-from views.notification import notification_bp
-from views.profile import profile_bp
+import os
 
 # Initialize extensions
 mail = Mail()
@@ -55,12 +40,11 @@ def create_app():
     app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
     app.config["MAIL_DEFAULT_SENDER"] = os.getenv("MAIL_DEFAULT_SENDER")
 
-    # CORS configuration - use one consistent approach
-    # We'll use the flask-cors extension with all necessary settings
+    # CORS configuration
     CORS(
         app,
         resources={r"/*": {
-            "origins": ["https://students-motiviation-app.vercel.app"],
+            "origins": ["https://students-motiviation-app-vkmx.vercel.app"],  # Update with your frontend URL
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization"],
             "supports_credentials": True
@@ -89,7 +73,7 @@ def create_app():
     app.register_blueprint(share_bp)
     app.register_blueprint(preference_bp)
     app.register_blueprint(notification_bp)
-    app.register_blueprint(profile_bp, url_prefix="/profile")  # Explicitly set the prefix
+    app.register_blueprint(profile_bp, url_prefix="/profile")
 
     # Token blocklist check
     @jwt.token_in_blocklist_loader
@@ -97,7 +81,7 @@ def create_app():
         jti = jwt_payload.get("jti")
         return db.session.query(TokenBlocklist.id).filter_by(jti=jti).scalar() is not None
 
-    # Root route handler to prevent 404 errors
+    # Root route handler
     @app.route('/')
     def index():
         return jsonify({"message": "Student Motivation API is running"}), 200
@@ -107,13 +91,6 @@ def create_app():
     def not_found(error):
         app.logger.info(f"404 error: {request.path}")
         return jsonify({"error": "Not found"}), 404
-
-    @app.after_request
-    def after_request(response):
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-        return response
 
     @app.errorhandler(500)
     def internal_server_error(error):
@@ -129,14 +106,14 @@ def create_app():
     def serve_static_images(filename):
         return send_from_directory('static/images', filename)
 
-    # Log all requests for debugging (optional, remove in production)
+    # Log all requests for debugging
     @app.before_request
     def log_request_info():
         app.logger.info(f"Request: {request.method} {request.path} from {request.remote_addr}")
 
     return app
 
-# ✅ Only for local development
+# Run the app locally
 if __name__ == "__main__":
     app = create_app()
     app.run(debug=True)
