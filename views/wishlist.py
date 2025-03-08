@@ -6,7 +6,7 @@ from models import Student, db, Post, Wishlist
 wishlist_bp = Blueprint('wishlist', __name__)
 
 # Allowed origins for CORS
-ALLOWED_ORIGINS = ["https://students-motiviation-app.vercel.app"]
+ALLOWED_ORIGINS = ["https://students-motiviation-app-vkmx.vercel.app"]
 
 @wishlist_bp.route('/wishlist', methods=['POST'])
 @cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)

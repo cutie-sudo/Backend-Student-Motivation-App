@@ -14,7 +14,7 @@ student_bp = Blueprint('student', __name__)
 
 # ✅ Student Login Route (Fixing Missing Route)
 @student_bp.route('/student/login', methods=['POST'])
-@cross_origin(origins=["http://localhost:5173", "https://motiviationapp-d4cm.vercel.app"], supports_credentials=True)  # ✅ Allow frontend requests
+@cross_origin(origins=["https://students-motiviation-app-vkmx.vercel.app"], supports_credentials=True)  # ✅ Allow frontend requests
 def student_login():
     data = request.get_json()
     email = data.get("email")
@@ -60,7 +60,7 @@ def create_student():
 
 # ✅ Get all students
 @student_bp.route('/students', methods=['GET'])
-@cross_origin(origins=["https://students-motiviation-app.vercel.app"], supports_credentials=True)
+@cross_origin(origins=["https://students-motiviation-app-vkmx.vercel.app/"], supports_credentials=True)
 @jwt_required()
 def get_students():
     try:
@@ -79,7 +79,7 @@ def get_students():
 
 # ✅ Get a specific student by ID (Fixed Route Name)
 @student_bp.route('/students/<int:student_id>', methods=['GET'])
-@cross_origin(origins=["https://students-motiviation-app.vercel.app"], supports_credentials=True)
+@cross_origin(origins=["students-motiviation-app-vkmx.vercel.app"], supports_credentials=True)
 @jwt_required()
 def get_student(student_id):
     try:
@@ -98,7 +98,7 @@ def get_student(student_id):
 
 # ✅ Update a student (Fixed Route Name)
 @student_bp.route('/students/<int:student_id>', methods=['PUT'])
-@cross_origin(origins=["https://students-motiviation-app.vercel.app"], supports_credentials=True)
+@cross_origin(origins=["https://students-motiviation-app-vkmx.vercel.app"], supports_credentials=True)
 @jwt_required()
 def update_student(student_id):
     try:
@@ -131,7 +131,7 @@ def update_student(student_id):
 
 # ✅ Delete a student (Fixed Route Name)
 @student_bp.route('/students/<int:student_id>', methods=['DELETE'])
-@cross_origin(origins=["https://students-motiviation-app.vercel.app"], supports_credentials=True)
+@cross_origin(origins=["https://students-motiviation-app-vkmx.vercel.app"], supports_credentials=True)
 def delete_student(student_id):
     try:
         student = Student.query.get_or_404(student_id)

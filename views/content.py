@@ -6,7 +6,7 @@ from flask_cors import cross_origin
 
 # Define Blueprint
 content_bp = Blueprint('content', __name__)
-ALLOWED_ORIGINS = ["https://students-motiviation-app.vercel.app"]
+ALLOWED_ORIGINS = ["students-motiviation-app-vkmx.vercel.app"]
 
 # Helper function to get content by ID
 def get_content_by_id(content_id):
