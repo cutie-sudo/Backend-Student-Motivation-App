@@ -8,6 +8,7 @@ from flask_login import LoginManager
 from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
 from flask import send_from_directory
+from models import db
 import logging
 import os
 
