@@ -9,6 +9,7 @@ from flask_login import LoginManager
 from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
 from flask import send_from_directory
+import logging
 
 from models import db, TokenBlocklist
 from views.auth import auth_bp
@@ -34,10 +35,15 @@ load_dotenv()
 
 def create_app():
     app = Flask(__name__)
+    
+    # Configure logging
+    logging.basicConfig(level=logging.INFO)
+    app.logger.setLevel(logging.INFO)
 
     # Load configuration from environment variables
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "your_default_secret_key")
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "your_jwt_secret")
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=24)
 
@@ -49,11 +55,16 @@ def create_app():
     app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
     app.config["MAIL_DEFAULT_SENDER"] = os.getenv("MAIL_DEFAULT_SENDER")
 
-    # CORS configuration
+    # CORS configuration - use one consistent approach
+    # We'll use the flask-cors extension with all necessary settings
     CORS(
         app,
-        supports_credentials=True,
-        origins=["https://students-motiviation-app.vercel.app"]  # Allow your frontend origin
+        resources={r"/*": {
+            "origins": ["https://students-motiviation-app.vercel.app"],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"],
+            "supports_credentials": True
+        }}
     )
 
     # Initialize extensions
@@ -78,7 +89,7 @@ def create_app():
     app.register_blueprint(share_bp)
     app.register_blueprint(preference_bp)
     app.register_blueprint(notification_bp)
-    app.register_blueprint(profile_bp, url_prefix="")
+    app.register_blueprint(profile_bp, url_prefix="/profile")  # Explicitly set the prefix
 
     # Token blocklist check
     @jwt.token_in_blocklist_loader
@@ -86,27 +97,35 @@ def create_app():
         jti = jwt_payload.get("jti")
         return db.session.query(TokenBlocklist.id).filter_by(jti=jti).scalar() is not None
 
+    # Root route handler to prevent 404 errors
+    @app.route('/')
+    def index():
+        return jsonify({"message": "Student Motivation API is running"}), 200
+
     # Error handling
     @app.errorhandler(404)
     def not_found(error):
+        app.logger.info(f"404 error: {request.path}")
         return jsonify({"error": "Not found"}), 404
 
     @app.errorhandler(500)
     def internal_server_error(error):
+        app.logger.error(f"500 error: {str(error)}")
         return jsonify({"error": "Internal server error"}), 500
+    
+    @app.errorhandler(Exception)
+    def handle_exception(e):
+        app.logger.error(f"Unhandled exception: {str(e)}")
+        return jsonify({"error": "An unexpected error occurred"}), 500
 
     @app.route('/images/<path:filename>')
     def serve_static_images(filename):
         return send_from_directory('static/images', filename)
 
-    # Add CORS headers to every response
-    @app.after_request
-    def add_cors_headers(response):
-        response.headers["Access-Control-Allow-Origin"] = "https://students-motiviation-app.vercel.app"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-        return response
+    # Log all requests for debugging (optional, remove in production)
+    @app.before_request
+    def log_request_info():
+        app.logger.info(f"Request: {request.method} {request.path} from {request.remote_addr}")
 
     return app
 
