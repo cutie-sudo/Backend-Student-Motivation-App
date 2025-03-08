@@ -5,11 +5,10 @@ from models import Student, db, Post, Wishlist
 
 wishlist_bp = Blueprint('wishlist', __name__)
 
-# Allowed origins for CORS
-ALLOWED_ORIGINS = ["https://students-motiviation-app-vkmx.vercel.app"]
+
 
 @wishlist_bp.route('/wishlist', methods=['POST'])
-@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
 def add_to_wishlist():
     student = get_jwt_identity()
@@ -35,7 +34,7 @@ def add_to_wishlist():
     return jsonify({"message": "Added to wishlist successfully", "wishlist_id": wishlist_item.id}), 201
 
 @wishlist_bp.route('/wishlist', methods=['GET'])
-@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
 def get_wishlist():
     student = get_jwt_identity()
@@ -63,7 +62,7 @@ def get_wishlist():
     return jsonify(wishlist_data), 200
 
 @wishlist_bp.route('/wishlist/<int:wishlist_id>', methods=['DELETE'])
-@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
 def remove_from_wishlist(wishlist_id):
     student = get_jwt_identity()

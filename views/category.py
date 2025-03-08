@@ -5,11 +5,11 @@ from flask_cors import cross_origin
 
 category_bp = Blueprint('category', __name__)
 
-ALLOWED_ORIGINS = ["students-motiviation-app-vkmx.vercel.app"]
+
 
 # Add a new category
 @category_bp.route('/categories', methods=['POST'])
-@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
 def add_category():
     data = request.get_json()
@@ -36,7 +36,7 @@ def add_category():
 
 # Get all categories
 @category_bp.route('/categories', methods=['GET'])
-@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 def get_categories():
     categories = Category.query.all()
     categories_data = [{
@@ -48,7 +48,7 @@ def get_categories():
 
 # Update a category
 @category_bp.route('/categories/<int:category_id>', methods=['PUT'])
-@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
 def update_category(category_id):
     data = request.get_json()
@@ -80,7 +80,7 @@ def update_category(category_id):
 
 # Delete a category
 @category_bp.route('/categories/<int:category_id>', methods=['DELETE'])
-@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
 def delete_category(category_id):
     current_user = get_jwt_identity()

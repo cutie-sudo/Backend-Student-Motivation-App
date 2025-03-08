@@ -7,10 +7,10 @@ from flask_cors import cross_origin
 
 comment_bp = Blueprint('comment', __name__)
 
-ALLOWED_ORIGINS = ["students-motiviation-app-vkmx.vercel.app"]
+
 
 @comment_bp.route('/comments', methods=['POST'])
-@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
 def add_comment():
     data = request.get_json()
@@ -42,7 +42,7 @@ def add_comment():
         return jsonify({"message": str(e)}), 500
 
 @comment_bp.route('/comments/<int:comment_id>', methods=['DELETE'])
-@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
 def delete_comment(comment_id):
     student = get_jwt_identity()
@@ -61,7 +61,7 @@ def delete_comment(comment_id):
         return jsonify({"message": str(e)}), 500
 
 @comment_bp.route('/posts/<int:post_id>/comments', methods=['GET'])
-@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 def get_comments(post_id):
     comments = Comment.query.filter_by(post_id=post_id, parent_id=None).all()
     comments_data = []
@@ -88,7 +88,7 @@ def get_comments(post_id):
     return jsonify(comments_data), 200
 
 @comment_bp.route('/comments/<int:comment_id>', methods=['PUT'])
-@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
 def update_comment(comment_id):
     student = get_jwt_identity()

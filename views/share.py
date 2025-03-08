@@ -12,7 +12,7 @@ def get_models():
 
 @share_bp.route('/shares', methods=['POST'])
 @jwt_required()
-@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 def share_post():
     Share, Post, Student, db = get_models()  # Import models inside function
 

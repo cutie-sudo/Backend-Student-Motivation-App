@@ -57,14 +57,15 @@ def create_app():
 
     # CORS configuration
     CORS(
-        app,
-        resources={r"/*": {
-            "origins": ["https://students-motiviation-app-vkmx.vercel.app"],  # Update with your frontend URL
-            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization"],
-            "supports_credentials": True
-        }}
-    )
+    app,
+    resources={r"/*": {
+        "origins": "*",  # Allow all origins
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
+    }}
+)
+
 
     # Initialize extensions
     db.init_app(app)

@@ -30,7 +30,7 @@ auth_bp = Blueprint("auth_bp", __name__)  # Fixed typo: _name -> _name_
 
 # Google Sign-In Route with proper CORS handling
 @auth_bp.route("/google_login", methods=["POST", "OPTIONS"])
-@cross_origin(origins=["https://students-motiviation-app-vkmx.vercel.app"], supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 def google_login():
     # Handle Preflight (OPTIONS request) if needed
     if request.method == "OPTIONS":
@@ -76,7 +76,7 @@ def google_login():
 
 # Local Signup Route with CORS handling
 @auth_bp.route("/signup", methods=["POST", "OPTIONS"])
-@cross_origin(origins=["https://students-motiviation-app-vkmx.vercel.app"], supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 def signup():
     if request.method == "OPTIONS":
         response = jsonify({"message": "CORS preflight successful"})
@@ -138,7 +138,7 @@ def signup():
 
 # Profile Route with CORS handling
 @auth_bp.route("/profile", methods=["GET", "OPTIONS"])
-@cross_origin(origins=["https://https://students-motiviation-app-vkmx.vercel.app"], supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 def profile():
     # Handle Preflight (OPTIONS request) if needed
     if request.method == "OPTIONS":

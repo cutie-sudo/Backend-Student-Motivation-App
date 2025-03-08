@@ -6,7 +6,7 @@ from flask_cors import cross_origin
 
 # Define Blueprint
 content_bp = Blueprint('content', __name__)
-ALLOWED_ORIGINS = ["students-motiviation-app-vkmx.vercel.app"]
+
 
 # Helper function to get content by ID
 def get_content_by_id(content_id):
@@ -50,7 +50,7 @@ def add_content():
 
 # Route to get all content
 @content_bp.route('/content', methods=['GET'])
-@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 def get_all_content():
     return jsonify([{ "id": c.id, "title": c.title, "description": c.description,
                       "category_id": c.category_id, "status": c.status, "admin_id": c.admin_id,
@@ -58,7 +58,7 @@ def get_all_content():
 
 # Route to get specific content by ID
 @content_bp.route('/content/<int:content_id>', methods=['GET'])
-@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
 def get_content(content_id):
     content = get_content_by_id(content_id)
@@ -69,7 +69,7 @@ def get_content(content_id):
 
 # Route to like/dislike content
 @content_bp.route('/content/<int:content_id>/<action>', methods=['POST'])
-@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
 def react_to_content(content_id, action):
     content = get_content_by_id(content_id)
@@ -84,7 +84,7 @@ def react_to_content(content_id, action):
 
 # Route to flag content
 @content_bp.route('/content/<int:content_id>/flag', methods=['POST'])
-@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
 def flag_content(content_id):
     content = get_content_by_id(content_id)
@@ -94,7 +94,7 @@ def flag_content(content_id):
 
 # Route to approve content
 @content_bp.route('/content/<int:content_id>/approve', methods=['PATCH'])
-@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
 def approve_content(content_id):
     content = get_content_by_id(content_id)
@@ -104,7 +104,7 @@ def approve_content(content_id):
 
 # Route to delete content
 @content_bp.route('/content/<int:content_id>', methods=['DELETE'])
-@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
 def delete_content(content_id):
     content = get_content_by_id(content_id)
@@ -114,7 +114,7 @@ def delete_content(content_id):
 
 # Route to edit content
 @content_bp.route('/content/<int:content_id>', methods=['PUT'])
-@cross_origin(origins=ALLOWED_ORIGINS, supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
 def edit_content(content_id):
     content = get_content_by_id(content_id)

@@ -12,7 +12,7 @@ notification_bp = Blueprint('notification', __name__)
 
 @notification_bp.route("/notifications/<int:user_id>", methods=["GET"])
 
-@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
 def get_notifications(user_id):
 
@@ -35,7 +35,7 @@ def get_notifications(user_id):
 # Mark a notification as read
 @notification_bp.route('/notifications/<int:notification_id>/read', methods=['PUT'])
 
-@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
 def mark_notification_read(notification_id):
     student_id = get_jwt_identity()

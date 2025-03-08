@@ -8,7 +8,7 @@ preference_bp = Blueprint('preference', __name__)
 
 
 @preference_bp.route('/preferences', methods=['POST'])
-@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
 
 def add_preference():
@@ -43,7 +43,7 @@ def add_preference():
     return jsonify({"message": "Preference added successfully", "preference_id": preference.id}), 201
     
 @preference_bp.route('/preferences', methods=['GET'])
-@cross_origin(origin="http://localhost:5173", supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
 
 def get_preferences():
