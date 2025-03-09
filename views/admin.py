@@ -10,19 +10,19 @@ admin_bp = Blueprint('admin', __name__)
 # -------------------------
 # Admin Login Route
 # -------------------------
-@admin_bp.route('/admin/login', methods=['POST'])
-@cross_origin(origins="*", supports_credentials=True)
-def admin_login():
-    data = request.get_json()
-    email = data.get("email")
-    password = data.get("password")
+# @admin_bp.route('/admin/login', methods=['POST'])
+# @cross_origin(origins="*", supports_credentials=True)
+# def admin_login():
+#     data = request.get_json()
+#     email = data.get("email")
+#     password = data.get("password")
 
-    admin = Admin.query.filter_by(email=email).first()
-    if not admin or not check_password_hash(admin.password, password):
-        return jsonify({"success": False, "error": "Invalid credentials"}), 401
+#     admin = Admin.query.filter_by(email=email).first()
+#     if not admin or not check_password_hash(admin.password, password):
+#         return jsonify({"success": False, "error": "Invalid credentials"}), 401
 
-    access_token = create_access_token(identity={"id": admin.id, "role": "admin"})
-    return jsonify({"success": True, "access_token": access_token, "role": "admin"}), 200
+#     access_token = create_access_token(identity={"id": admin.id, "role": "admin"})
+#     return jsonify({"success": True, "access_token": access_token, "role": "admin"}), 200
 
 # -------------------------
 # Create a New Admin

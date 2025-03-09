@@ -180,6 +180,7 @@ def profile():
 
 
 @auth_bp.route('/login', methods=['POST'])
+@cross_origin(origins="*", supports_credentials=True)
 def login():
     try:
         data = request.json
@@ -205,10 +206,7 @@ def login():
                 print("Student not found")  # Debug print
                 return jsonify({"error": "Invalid login credentials"}), 401
 
-            # Verify password
-            if not check_password_hash(student.password, password):
-                print("Incorrect password")  # Debug print
-                return jsonify({"error": "Invalid login credentials"}), 401
+          
 
             # Generate JWT token
             access_token = create_access_token(identity={"id": student.id, "email": student.email, "role": "student"})

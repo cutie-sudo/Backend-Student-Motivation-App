@@ -11,25 +11,25 @@ logger = logging.getLogger(__name__)
 
 student_bp = Blueprint('student', __name__)
 
-# ✅ Student Login Route
-@student_bp.route('/student/login', methods=['POST'])
-@cross_origin(origins="*", supports_credentials=True)
-def student_login():
-    try:
-        data = request.get_json()
-        email = data.get("email")
-        password = data.get("password")
+# # ✅ Student Login Route
+# @student_bp.route('/student/login', methods=['POST'])
+# @cross_origin(origins="*", supports_credentials=True)
+# def student_login():
+#     try:
+#         data = request.get_json()
+#         email = data.get("email")
+#         password = data.get("password")
 
-        student = Student.query.filter_by(email=email).first()
-        if not student or not check_password_hash(student.password, password):
-            return jsonify({"success": False, "error": "Invalid credentials"}), 401
+#         student = Student.query.filter_by(email=email).first()
+#         if not student or not check_password_hash(student.password, password):
+#             return jsonify({"success": False, "error": "Invalid credentials"}), 401
 
-        access_token = create_access_token(identity={"id": student.id, "role": "student"})
-        return jsonify({"success": True, "access_token": access_token, "role": "student"}), 200
+#         access_token = create_access_token(identity={"id": student.id, "role": "student"})
+#         return jsonify({"success": True, "access_token": access_token, "role": "student"}), 200
 
-    except Exception as e:
-        logger.error(f"Error during login: {e}")
-        return jsonify({"message": "An error occurred while logging in"}), 500
+#     except Exception as e:
+#         logger.error(f"Error during login: {e}")
+#         return jsonify({"message": "An error occurred while logging in"}), 500
 
 # ✅ Create a new student
 @student_bp.route('/students', methods=['POST'])
