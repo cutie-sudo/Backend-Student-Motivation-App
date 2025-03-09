@@ -8,7 +8,7 @@ from flask_login import LoginManager
 from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
 from flask import send_from_directory
-from models import db
+from models import db, TokenBlocklist
 
 import logging
 import os
@@ -68,7 +68,7 @@ def create_app():
     }}
 )
 
-   
+
 
 
     # Initialize extensions
@@ -98,8 +98,12 @@ def create_app():
     # Token blocklist check
     @jwt.token_in_blocklist_loader
     def check_if_token_revoked(_jwt_header, jwt_payload: dict) -> bool:
-        jti = jwt_payload.get("jti")
-        return db.session.query(TokenBlocklist.id).filter_by(jti=jti).scalar() is not None
+        jti = jwt_payload.get("jti")  # Get the unique JWT token identifier
+
+        if not jti:
+            return True  # If there's no JTI, treat it as revoked for safety
+
+        return db.session.query(TokenBlocklist.id).filter_by(jti=jti).first() is not None
 
     # Root route handler
     @app.route('/')

@@ -36,6 +36,7 @@ def add_category():
 # Get all categories
 @category_bp.route('/categories', methods=['GET'])
 @cross_origin(origins="*", supports_credentials=True)
+@jwt_required()
 def get_categories():
     categories = Category.query.all()
     return jsonify([{ "id": c.id, "name": c.name, "admin_id": c.admin_id } for c in categories]), 200
