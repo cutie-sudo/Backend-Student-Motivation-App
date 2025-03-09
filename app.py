@@ -9,8 +9,7 @@ from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
 from flask import send_from_directory
 from models import db
-from firebase_admin import auth, credentials
-import firebase_admin
+
 import logging
 import os
 
@@ -69,9 +68,7 @@ def create_app():
     }}
 )
 
-    # Firebase initialization
-    cred = credentials.Certificate("firebase_admin_sdk.json")  
-    firebase_admin.initialize_app(cred)
+   
 
 
     # Initialize extensions

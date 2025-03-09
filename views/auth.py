@@ -177,31 +177,32 @@ def profile():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-
 @auth_bp.route('/login', methods=['POST'])
+@cross_origin(origins="*", supports_credentials=True)
 def login():
     try:
         data = request.json
         email = data.get("email")
         password = data.get("password")
-        role = data.get("role")
+        role = data.get("role").lower()  # Convert role to lowercase for consistency
 
         if not email or not password or not role:
             return jsonify({"error": "Email, password, and role are required"}), 400
 
-        # Firebase Authentication: Verify Token (if using Firebase Auth)
-        try:
-            user = auth.get_user_by_email(email)
-            user_data = {
-                "email": user.email,
-                "uid": user.uid,
-                "role": role
-            }
-            access_token = "mocked_token"  # Replace with actual JWT token logic
-            return jsonify({"access_token": access_token, "user": user_data}), 200
-        except Exception as e:
-            print("Firebase Auth Error:", str(e))
+        # Ensure role is either 'admin' or 'student'
+        if role not in ["admin", "student"]:
+            return jsonify({"error": "Invalid role. Must be 'admin' or 'student'"}), 403
+
+        # Fetch user from database with matching role
+        user = User.query.filter_by(email=email, role=role).first()
+
+        if not user or not check_password_hash(user.password, password):
             return jsonify({"error": "Invalid login credentials"}), 401
+
+        # Generate JWT token
+        access_token = create_access_token(identity={"id": user.id, "email": user.email, "role": user.role})
+
+        return jsonify({"access_token": access_token, "user": {"email": user.email, "role": user.role}}), 200
 
     except Exception as e:
         print("Login error:", str(e))
