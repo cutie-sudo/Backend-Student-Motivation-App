@@ -7,6 +7,7 @@ from flask_cors import cross_origin
 from flask_jwt_extended import create_access_token
 from models import db, Admin, Student
 from werkzeug.security import generate_password_hash
+from werkzeug.security import check_password_hash  
 from sqlalchemy.exc import IntegrityError
 
 # Get the absolute path to the Firebase service account JSON file
@@ -206,7 +207,10 @@ def login():
                 print("Student not found")  # Debug print
                 return jsonify({"error": "Invalid login credentials"}), 401
 
-          
+            # ✅ Password check for student
+            if not check_password_hash(student.password, password):
+                print("Incorrect password for student")  # Debug print
+                return jsonify({"error": "Invalid login credentials"}), 401
 
             # Generate JWT token
             access_token = create_access_token(identity={"id": student.id, "email": student.email, "role": "student"})
@@ -220,9 +224,9 @@ def login():
                 print("Admin not found")  # Debug print
                 return jsonify({"error": "Invalid login credentials"}), 401
 
-            # Verify password
+            # ✅ Password check for admin
             if not check_password_hash(admin.password, password):
-                print("Incorrect password")  # Debug print
+                print("Incorrect password for admin")  # Debug print
                 return jsonify({"error": "Invalid login credentials"}), 401
 
             # Generate JWT token
@@ -232,5 +236,5 @@ def login():
             return jsonify({"access_token": access_token, "admin": {"email": admin.email, "role": "admin"}}), 200
 
     except Exception as e:
-        print("Login error:", str(e))  # Log the error
-        return jsonify({"error": "Internal Server Error"}), 500
+        print("Login error:", str(e))  # Debugging
+        return jsonify({"error": str(e)}), 500  # Show real error
