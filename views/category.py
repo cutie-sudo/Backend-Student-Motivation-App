@@ -5,7 +5,9 @@ from flask_cors import cross_origin
 
 category_bp = Blueprint('category', __name__)
 
-
+# Helper function to get category by ID
+def get_category_by_id(category_id):
+    return Category.query.get(category_id)
 
 # Add a new category
 @category_bp.route('/categories', methods=['POST'])
@@ -16,10 +18,7 @@ def add_category():
     name = data.get('name')
     
     current_user = get_jwt_identity()
-    admin_id = current_user.get("id")
-    role = current_user.get("role")
-
-    if role != "admin":
+    if current_user.get("role") != "admin":
         return jsonify({"message": "Only admins can add categories"}), 403
 
     if not name:
@@ -28,7 +27,7 @@ def add_category():
     if Category.query.filter_by(name=name).first():
         return jsonify({"message": "Category already exists"}), 400
 
-    new_category = Category(name=name, admin_id=admin_id)
+    new_category = Category(name=name, admin_id=current_user.get("id"))
     db.session.add(new_category)
     db.session.commit()
 
@@ -39,12 +38,7 @@ def add_category():
 @cross_origin(origins="*", supports_credentials=True)
 def get_categories():
     categories = Category.query.all()
-    categories_data = [{
-        "id": category.id, 
-        "name": category.name, 
-        "admin_id": category.admin_id
-    } for category in categories]
-    return jsonify(categories_data), 200
+    return jsonify([{ "id": c.id, "name": c.name, "admin_id": c.admin_id } for c in categories]), 200
 
 # Update a category
 @category_bp.route('/categories/<int:category_id>', methods=['PUT'])
@@ -53,29 +47,27 @@ def get_categories():
 def update_category(category_id):
     data = request.get_json()
     new_name = data.get('name')
-
+    
     current_user = get_jwt_identity()
-    admin_id = current_user.get("id")
-    role = current_user.get("role")
-
-    if role != "admin":
+    category = get_category_by_id(category_id)
+    
+    if not category:
+        return jsonify({"message": "Category not found"}), 404
+    
+    if current_user.get("role") != "admin":
         return jsonify({"message": "Only admins can update categories"}), 403
 
-    category = Category.query.get_or_404(category_id)
-
-    if category.admin_id != admin_id:
+    if category.admin_id != current_user.get("id"):
         return jsonify({"message": "Unauthorized: You can only update categories you created"}), 403
 
     if not new_name:
         return jsonify({"message": "New category name is required"}), 400
 
-    existing_category = Category.query.filter_by(name=new_name).first()
-    if existing_category and existing_category.id != category_id:
+    if Category.query.filter_by(name=new_name).first():
         return jsonify({"message": "Category name already exists"}), 400
 
     category.name = new_name
     db.session.commit()
-
     return jsonify({"message": "Category updated successfully", "category_id": category.id}), 200
 
 # Delete a category
@@ -84,16 +76,16 @@ def update_category(category_id):
 @jwt_required()
 def delete_category(category_id):
     current_user = get_jwt_identity()
-    admin_id = current_user.get("id")
-    role = current_user.get("role")
-
-    if role != "admin":
+    category = get_category_by_id(category_id)
+    
+    if not category:
+        return jsonify({"message": "Category not found"}), 404
+    
+    if current_user.get("role") != "admin":
         return jsonify({"message": "Only admins can delete categories"}), 403
 
-    category = Category.query.get_or_404(category_id)
-
-    if category.admin_id != admin_id:
-        return jsonify({"message": "Unauthorized"}), 403
+    if category.admin_id != current_user.get("id"):
+        return jsonify({"message": "Unauthorized: You can only delete categories you created"}), 403
 
     db.session.delete(category)
     db.session.commit()

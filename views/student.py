@@ -1,7 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
 from models import Student, db
 from flask_cors import cross_origin
 import logging
@@ -12,20 +11,25 @@ logger = logging.getLogger(__name__)
 
 student_bp = Blueprint('student', __name__)
 
-# ✅ Student Login Route (Fixing Missing Route)
+# ✅ Student Login Route
 @student_bp.route('/student/login', methods=['POST'])
 @cross_origin(origins="*", supports_credentials=True)
 def student_login():
-    data = request.get_json()
-    email = data.get("email")
-    password = data.get("password")
+    try:
+        data = request.get_json()
+        email = data.get("email")
+        password = data.get("password")
 
-    student = Student.query.filter_by(email=email).first()
-    if not student or not check_password_hash(student.password, password):
-        return jsonify({"success": False, "error": "Invalid credentials"}), 401
+        student = Student.query.filter_by(email=email).first()
+        if not student or not check_password_hash(student.password, password):
+            return jsonify({"success": False, "error": "Invalid credentials"}), 401
 
-    access_token = create_access_token(identity={"id": student.id, "role": "student"})
-    return jsonify({"success": True, "access_token": access_token, "role": "student"}), 200
+        access_token = create_access_token(identity={"id": student.id, "role": "student"})
+        return jsonify({"success": True, "access_token": access_token, "role": "student"}), 200
+
+    except Exception as e:
+        logger.error(f"Error during login: {e}")
+        return jsonify({"message": "An error occurred while logging in"}), 500
 
 # ✅ Create a new student
 @student_bp.route('/students', methods=['POST'])
@@ -56,6 +60,7 @@ def create_student():
 
     except Exception as e:
         logger.error(f"Error creating student: {e}")
+        db.session.rollback()
         return jsonify({"message": "An error occurred while creating the student"}), 500
 
 # ✅ Get all students
@@ -77,7 +82,7 @@ def get_students():
         logger.error(f"Error retrieving students: {e}")
         return jsonify({"message": "An error occurred while retrieving students"}), 500
 
-# ✅ Get a specific student by ID (Fixed Route Name)
+# ✅ Get a specific student by ID
 @student_bp.route('/students/<int:student_id>', methods=['GET'])
 @cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
@@ -96,30 +101,27 @@ def get_student(student_id):
         logger.error(f"Error retrieving student with ID {student_id}: {e}")
         return jsonify({"message": "An error occurred while retrieving the student"}), 500
 
-# ✅ Update a student (Fixed Route Name)
+# ✅ Update a student
 @student_bp.route('/students/<int:student_id>', methods=['PUT'])
 @cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
 def update_student(student_id):
     try:
-        data = request.get_json()
         student = Student.query.get_or_404(student_id)
+        data = request.get_json()
 
-        if 'email' in data:
-            new_email = data['email']
-            if Student.query.filter(Student.email == new_email, Student.id != student_id).first():
+        if 'email' in data and data['email'] != student.email:
+            if Student.query.filter(Student.email == data['email'], Student.id != student_id).first():
                 return jsonify({"message": "Email already exists"}), 400
-            student.email = new_email
+            student.email = data['email']
 
-        if 'username' in data:
-            new_username = data['username']
-            if Student.query.filter(Student.username == new_username, Student.id != student_id).first():
+        if 'username' in data and data['username'] != student.username:
+            if Student.query.filter(Student.username == data['username'], Student.id != student_id).first():
                 return jsonify({"message": "Username already exists"}), 400
-            student.username = new_username
+            student.username = data['username']
 
-        if 'password' in data:
-            new_password = data['password']
-            student.password = generate_password_hash(new_password)
+        if 'password' in data and data['password']:
+            student.password = generate_password_hash(data['password'])
 
         db.session.commit()
         logger.info(f"Student with ID {student_id} updated successfully")
@@ -127,11 +129,13 @@ def update_student(student_id):
 
     except Exception as e:
         logger.error(f"Error updating student with ID {student_id}: {e}")
+        db.session.rollback()
         return jsonify({"message": "An error occurred while updating the student"}), 500
 
-# ✅ Delete a student (Fixed Route Name)
+# ✅ Delete a student (Now Requires JWT)
 @student_bp.route('/students/<int:student_id>', methods=['DELETE'])
 @cross_origin(origins="*", supports_credentials=True)
+@jwt_required()
 def delete_student(student_id):
     try:
         student = Student.query.get_or_404(student_id)
@@ -142,4 +146,5 @@ def delete_student(student_id):
 
     except Exception as e:
         logger.error(f"Error deleting student with ID {student_id}: {e}")
+        db.session.rollback()
         return jsonify({"message": "An error occurred while deleting the student"}), 500

@@ -1,15 +1,19 @@
 import os
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
 from werkzeug.security import generate_password_hash
 from werkzeug.utils import secure_filename
 from models import db, Admin, Student
+from flask_cors import CORS
 
 profile_bp = Blueprint("profile_bp", __name__)
 
 # Configure allowed file types and upload folder.
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 UPLOAD_FOLDER = os.path.join(os.getcwd(), "uploads")
+
+# Enable CORS for the profile blueprint to allow cross-origin requests
+CORS(profile_bp)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -131,4 +135,11 @@ def update_profile_picture():
 
 @profile_bp.route("/uploads/<filename>")
 def uploaded_file(filename):
-    return send_from_directory(UPLOAD_FOLDER, filename)
+    """
+    Returns the profile picture from the uploads directory.
+    """
+    try:
+        return send_from_directory(UPLOAD_FOLDER, filename)
+    except Exception as e:
+        current_app.logger.error(f"Error serving file {filename}: {str(e)}")
+        return jsonify({"success": False, "error": "Error serving file"}), 500

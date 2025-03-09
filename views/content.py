@@ -7,10 +7,12 @@ from flask_cors import cross_origin
 # Define Blueprint
 content_bp = Blueprint('content', __name__)
 
-
 # Helper function to get content by ID
 def get_content_by_id(content_id):
-    return Content.query.get_or_404(content_id)
+    content = Content.query.get(content_id)
+    if not content:
+        return None
+    return content
 
 # Route to add content
 @content_bp.route('/content', methods=['POST'])
@@ -23,7 +25,7 @@ def add_content():
     content_link = data.get('content_link')
     
     current_user = get_jwt_identity()
-    if current_user.get("role") != "admin":
+    if not current_user or current_user.get("role") != "admin":
         return jsonify({"message": "Only admins can add content"}), 403
 
     if not title or not category_id or not content_type:
@@ -35,7 +37,8 @@ def add_content():
     if content_type == 'note' and not description:
         return jsonify({"message": "Description is required for notes"}), 400
 
-    if not Category.query.get(category_id):
+    category = Category.query.get(category_id)
+    if not category:
         return jsonify({"message": "Category not found"}), 404
 
     new_content = Content(
@@ -52,9 +55,10 @@ def add_content():
 @content_bp.route('/content', methods=['GET'])
 @cross_origin(origins="*", supports_credentials=True)
 def get_all_content():
+    content_list = Content.query.all()
     return jsonify([{ "id": c.id, "title": c.title, "description": c.description,
                       "category_id": c.category_id, "status": c.status, "admin_id": c.admin_id,
-                      "content_type": c.content_type, "content_link": c.content_link} for c in Content.query.all()]), 200
+                      "content_type": c.content_type, "content_link": c.content_link} for c in content_list]), 200
 
 # Route to get specific content by ID
 @content_bp.route('/content/<int:content_id>', methods=['GET'])
@@ -62,6 +66,8 @@ def get_all_content():
 @jwt_required()
 def get_content(content_id):
     content = get_content_by_id(content_id)
+    if not content:
+        return jsonify({"message": "Content not found"}), 404
     return jsonify({ "id": content.id, "title": content.title, "description": content.description,
                      "category_id": content.category_id, "status": content.status,
                      "admin_id": content.admin_id, "content_type": content.content_type,
@@ -73,12 +79,16 @@ def get_content(content_id):
 @jwt_required()
 def react_to_content(content_id, action):
     content = get_content_by_id(content_id)
+    if not content:
+        return jsonify({"message": "Content not found"}), 404
+    
     if action == "like":
-        content.likes += 1
+        content.likes = getattr(content, 'likes', 0) + 1
     elif action == "dislike":
-        content.dislikes += 1
+        content.dislikes = getattr(content, 'dislikes', 0) + 1
     else:
         return jsonify({"message": "Invalid action"}), 400
+    
     db.session.commit()
     return jsonify({"message": f"Content {action}d successfully"}), 200
 
@@ -88,6 +98,9 @@ def react_to_content(content_id, action):
 @jwt_required()
 def flag_content(content_id):
     content = get_content_by_id(content_id)
+    if not content:
+        return jsonify({"message": "Content not found"}), 404
+    
     content.is_flagged = True
     db.session.commit()
     return jsonify({"message": "Content flagged successfully"}), 200
@@ -98,6 +111,9 @@ def flag_content(content_id):
 @jwt_required()
 def approve_content(content_id):
     content = get_content_by_id(content_id)
+    if not content:
+        return jsonify({"message": "Content not found"}), 404
+    
     content.is_approved = True
     db.session.commit()
     return jsonify({"message": "Content approved successfully"}), 200
@@ -108,6 +124,9 @@ def approve_content(content_id):
 @jwt_required()
 def delete_content(content_id):
     content = get_content_by_id(content_id)
+    if not content:
+        return jsonify({"message": "Content not found"}), 404
+    
     db.session.delete(content)
     db.session.commit()
     return jsonify({"message": "Content removed successfully"}), 200
@@ -118,9 +137,13 @@ def delete_content(content_id):
 @jwt_required()
 def edit_content(content_id):
     content = get_content_by_id(content_id)
+    if not content:
+        return jsonify({"message": "Content not found"}), 404
+    
     data = request.get_json()
     for field in ["title", "description", "content_link", "content_type", "category_id"]:
         if field in data:
             setattr(content, field, data[field])
     db.session.commit()
+    
     return jsonify({"message": "Content updated successfully"}), 200

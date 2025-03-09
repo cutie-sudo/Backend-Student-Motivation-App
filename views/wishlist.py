@@ -1,18 +1,19 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask_cors import cross_origin
-from models import Student, db, Post, Wishlist
+from models import db, Post, Wishlist
 
 wishlist_bp = Blueprint('wishlist', __name__)
 
-
+# Helper function to get wishlist item
+def get_wishlist_item(wishlist_id, student_id):
+    return Wishlist.query.filter_by(id=wishlist_id, student_id=student_id).first()
 
 @wishlist_bp.route('/wishlist', methods=['POST'])
 @cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
 def add_to_wishlist():
-    student = get_jwt_identity()
-    student_id = student["id"]
+    student_id = get_jwt_identity().get("id")
     data = request.get_json()
     post_id = data.get('post_id')
 
@@ -23,24 +24,25 @@ def add_to_wishlist():
     if not post:
         return jsonify({"message": "Post not found"}), 404
 
-    existing_item = Wishlist.query.filter_by(student_id=student_id, post_id=post_id).first()
-    if existing_item:
+    if Wishlist.query.filter_by(student_id=student_id, post_id=post_id).first():
         return jsonify({"message": "Already in wishlist"}), 400
 
-    wishlist_item = Wishlist(student_id=student_id, post_id=post_id)
-    db.session.add(wishlist_item)
-    db.session.commit()
-
-    return jsonify({"message": "Added to wishlist successfully", "wishlist_id": wishlist_item.id}), 201
+    try:
+        wishlist_item = Wishlist(student_id=student_id, post_id=post_id)
+        db.session.add(wishlist_item)
+        db.session.commit()
+        return jsonify({"message": "Added to wishlist successfully", "wishlist_id": wishlist_item.id}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": str(e)}), 500
 
 @wishlist_bp.route('/wishlist', methods=['GET'])
 @cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
 def get_wishlist():
-    student = get_jwt_identity()
-    student_id = student["id"]
-    wishlist_items = Wishlist.query.filter_by(student_id=student_id).all()
+    student_id = get_jwt_identity().get("id")
 
+    wishlist_items = Wishlist.query.filter_by(student_id=student_id).all()
     wishlist_data = [
         {
             "wishlist_id": item.id,
@@ -50,7 +52,7 @@ def get_wishlist():
             "category_id": item.post.category_id,
             "admin_id": item.post.admin_id,
             "student_id": item.post.student_id,
-            "created_at": item.post.created_at,
+            "created_at": item.post.created_at.isoformat(),
             "is_approved": item.post.is_approved,
             "is_flagged": item.post.is_flagged,
             "likes": item.post.likes,
@@ -65,13 +67,16 @@ def get_wishlist():
 @cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
 def remove_from_wishlist(wishlist_id):
-    student = get_jwt_identity()
-    student_id = student["id"]
-    wishlist_item = Wishlist.query.get_or_404(wishlist_id)
+    student_id = get_jwt_identity().get("id")
+    wishlist_item = get_wishlist_item(wishlist_id, student_id)
 
-    if wishlist_item.student_id != student_id:
-        return jsonify({"message": "Unauthorized"}), 403
+    if not wishlist_item:
+        return jsonify({"message": "Wishlist item not found or unauthorized"}), 404
 
-    db.session.delete(wishlist_item)
-    db.session.commit()
-    return jsonify({"message": "Removed from wishlist successfully"}), 200
+    try:
+        db.session.delete(wishlist_item)
+        db.session.commit()
+        return jsonify({"message": "Removed from wishlist successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": str(e)}), 500
