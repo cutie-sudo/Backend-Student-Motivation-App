@@ -178,32 +178,41 @@ def profile():
         return jsonify({"success": False, "error": str(e)}), 500
 
 @auth_bp.route('/login', methods=['POST'])
-@cross_origin(origins="*", supports_credentials=True)
 def login():
     try:
         data = request.json
+        print("Received login request:", data)  # Debug print
+
         email = data.get("email")
         password = data.get("password")
-        role = data.get("role").lower()  # Convert role to lowercase for consistency
+        role = data.get("role")
 
         if not email or not password or not role:
+            print("Missing credentials")  # Debug print
             return jsonify({"error": "Email, password, and role are required"}), 400
 
-        # Ensure role is either 'admin' or 'student'
+        role = role.lower()
         if role not in ["admin", "student"]:
+            print("Invalid role:", role)  # Debug print
             return jsonify({"error": "Invalid role. Must be 'admin' or 'student'"}), 403
 
-        # Fetch user from database with matching role
+        # Check if user exists in the database
         user = User.query.filter_by(email=email, role=role).first()
+        if not user:
+            print("User not found")  # Debug print
+            return jsonify({"error": "Invalid login credentials"}), 401
 
-        if not user or not check_password_hash(user.password, password):
+        # Verify password
+        if not check_password_hash(user.password, password):
+            print("Incorrect password")  # Debug print
             return jsonify({"error": "Invalid login credentials"}), 401
 
         # Generate JWT token
         access_token = create_access_token(identity={"id": user.id, "email": user.email, "role": user.role})
+        print("Login successful for:", email)  # Debug print
 
         return jsonify({"access_token": access_token, "user": {"email": user.email, "role": user.role}}), 200
 
     except Exception as e:
-        print("Login error:", str(e))
+        print("Login error:", str(e))  # Log the error
         return jsonify({"error": "Internal Server Error"}), 500
