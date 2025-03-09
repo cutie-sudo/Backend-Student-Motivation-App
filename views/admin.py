@@ -128,7 +128,7 @@ def delete_admin(admin_id):
 # Deactivate a User (Student or Admin)
 # -------------------------
 @admin_bp.route('/users/<int:user_id>/deactivate', methods=['PATCH'])
-@cross_origin()
+@cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
 def deactivate_user(user_id):
     # Try to find user in Student or Admin
