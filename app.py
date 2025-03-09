@@ -9,6 +9,8 @@ from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
 from flask import send_from_directory
 from models import db
+from firebase_admin import auth, credentials
+import firebase_admin
 import logging
 import os
 
@@ -39,6 +41,7 @@ def create_app():
     # Configure logging
     logging.basicConfig(level=logging.INFO)
     app.logger.setLevel(logging.INFO)
+    app.logger.debug("Debugging mode enabled")
 
     # Load configuration from environment variables
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "your_default_secret_key")
@@ -65,6 +68,10 @@ def create_app():
         "supports_credentials": True
     }}
 )
+
+    # Firebase initialization
+    cred = credentials.Certificate("firebase_admin_sdk.json")  
+    firebase_admin.initialize_app(cred)
 
 
     # Initialize extensions
@@ -126,6 +133,12 @@ def create_app():
     @app.before_request
     def log_request_info():
         app.logger.info(f"Request: {request.method} {request.path} from {request.remote_addr}")
+
+    @app.before_request
+    def handle_options():
+    if request.method == "OPTIONS":
+        return "", 200
+
 
     return app
 

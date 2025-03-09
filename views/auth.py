@@ -176,3 +176,33 @@ def profile():
 
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@auth_bp.route('/login', methods=['POST'])
+def login():
+    try:
+        data = request.json
+        email = data.get("email")
+        password = data.get("password")
+        role = data.get("role")
+
+        if not email or not password or not role:
+            return jsonify({"error": "Email, password, and role are required"}), 400
+
+        # Firebase Authentication: Verify Token (if using Firebase Auth)
+        try:
+            user = auth.get_user_by_email(email)
+            user_data = {
+                "email": user.email,
+                "uid": user.uid,
+                "role": role
+            }
+            access_token = "mocked_token"  # Replace with actual JWT token logic
+            return jsonify({"access_token": access_token, "user": user_data}), 200
+        except Exception as e:
+            print("Firebase Auth Error:", str(e))
+            return jsonify({"error": "Invalid login credentials"}), 401
+
+    except Exception as e:
+        print("Login error:", str(e))
+        return jsonify({"error": "Internal Server Error"}), 500
