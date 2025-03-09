@@ -177,6 +177,13 @@ def profile():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+from flask import Blueprint, request, jsonify
+from werkzeug.security import check_password_hash
+from flask_jwt_extended import create_access_token
+from your_database_models import Student, Admin  # Import your models
+
+auth_bp = Blueprint('auth', __name__)
+
 @auth_bp.route('/login', methods=['POST'])
 def login():
     try:
@@ -196,27 +203,40 @@ def login():
             print("Invalid role:", role)  # Debug print
             return jsonify({"error": "Invalid role. Must be 'admin' or 'student'"}), 403
 
-        # Check user based on role
-        user = None
+        # Check Student or Admin separately
         if role == "student":
-            user = Student.query.filter_by(email=email).first()
+            student = Student.query.filter_by(email=email).first()
+            if not student:
+                print("Student not found")  # Debug print
+                return jsonify({"error": "Invalid login credentials"}), 401
+
+            # Verify password
+            if not check_password_hash(student.password, password):
+                print("Incorrect password")  # Debug print
+                return jsonify({"error": "Invalid login credentials"}), 401
+
+            # Generate JWT token
+            access_token = create_access_token(identity={"id": student.id, "email": student.email, "role": "student"})
+            print("Login successful for student:", email)  # Debug print
+
+            return jsonify({"access_token": access_token, "student": {"email": student.email, "role": "student"}}), 200
+
         elif role == "admin":
-            user = Admin.query.filter_by(email=email).first()
+            admin = Admin.query.filter_by(email=email).first()
+            if not admin:
+                print("Admin not found")  # Debug print
+                return jsonify({"error": "Invalid login credentials"}), 401
 
-        if not user:
-            print("User not found")  # Debug print
-            return jsonify({"error": "Invalid login credentials"}), 401
+            # Verify password
+            if not check_password_hash(admin.password, password):
+                print("Incorrect password")  # Debug print
+                return jsonify({"error": "Invalid login credentials"}), 401
 
-        # Verify password
-        if not check_password_hash(user.password, password):
-            print("Incorrect password")  # Debug print
-            return jsonify({"error": "Invalid login credentials"}), 401
+            # Generate JWT token
+            access_token = create_access_token(identity={"id": admin.id, "email": admin.email, "role": "admin"})
+            print("Login successful for admin:", email)  # Debug print
 
-        # Generate JWT token
-        access_token = create_access_token(identity={"id": user.id, "email": user.email, "role": role})
-        print("Login successful for:", email)  # Debug print
-
-        return jsonify({"access_token": access_token, "user": {"email": user.email, "role": role}}), 200
+            return jsonify({"access_token": access_token, "admin": {"email": admin.email, "role": "admin"}}), 200
 
     except Exception as e:
         print("Login error:", str(e))  # Log the error
