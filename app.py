@@ -136,8 +136,8 @@ def create_app():
 
     @app.before_request
     def handle_options():
-    if request.method == "OPTIONS":
-        return "", 200
+        if request.method == "OPTIONS":
+            return "", 200
 
 
     return app
