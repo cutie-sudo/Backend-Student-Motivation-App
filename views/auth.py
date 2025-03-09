@@ -196,8 +196,13 @@ def login():
             print("Invalid role:", role)  # Debug print
             return jsonify({"error": "Invalid role. Must be 'admin' or 'student'"}), 403
 
-        # Check if user exists in the database
-        user = User.query.filter_by(email=email, role=role).first()
+        # Check user based on role
+        user = None
+        if role == "student":
+            user = Student.query.filter_by(email=email).first()
+        elif role == "admin":
+            user = Admin.query.filter_by(email=email).first()
+
         if not user:
             print("User not found")  # Debug print
             return jsonify({"error": "Invalid login credentials"}), 401
@@ -208,10 +213,10 @@ def login():
             return jsonify({"error": "Invalid login credentials"}), 401
 
         # Generate JWT token
-        access_token = create_access_token(identity={"id": user.id, "email": user.email, "role": user.role})
+        access_token = create_access_token(identity={"id": user.id, "email": user.email, "role": role})
         print("Login successful for:", email)  # Debug print
 
-        return jsonify({"access_token": access_token, "user": {"email": user.email, "role": user.role}}), 200
+        return jsonify({"access_token": access_token, "user": {"email": user.email, "role": role}}), 200
 
     except Exception as e:
         print("Login error:", str(e))  # Log the error
