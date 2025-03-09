@@ -78,9 +78,13 @@ def get_students():
         } for student in students]
         return jsonify(students_data), 200
 
+    except SQLAlchemyError as e:
+        logger.error(f"Database Error: {e}")
+        return jsonify({"error": "Database connection failed"}), 500
+
     except Exception as e:
-        logger.error(f"Error retrieving students: {e}")
-        return jsonify({"message": "An error occurred while retrieving students"}), 500
+        logger.error(f"Unexpected Error: {e}")
+        return jsonify({"error": "An unexpected error occurred"}), 500
 
 # ✅ Get a specific student by ID
 @student_bp.route('/students/<int:student_id>', methods=['GET'])
