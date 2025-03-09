@@ -128,22 +128,29 @@ def delete_admin(admin_id):
 # Deactivate a User (Student or Admin)
 # -------------------------
 @admin_bp.route('/users/<int:user_id>/deactivate', methods=['PATCH'])
-@cross_origin(origins="*", supports_credentials=True)
+@cross_origin(origins="*", supports_credentials=True)  
 @jwt_required()
 def deactivate_user(user_id):
-    # Try to find user in Student or Admin
-    user = Student.query.get(user_id) or Admin.query.get(user_id)
+    try:
+        # Try to find user in Student or Admin
+        user = Student.query.get(user_id) or Admin.query.get(user_id)
 
-    if not user:
-        return jsonify({"message": "User not found"}), 404
+        if not user:
+            return jsonify({"message": "User not found"}), 404
 
-    # Check if user has 'is_active' attribute
-    if hasattr(user, 'is_active'):
-        user.is_active = False
+        # Check if user has 'is_active' attribute
+        if not hasattr(user, 'is_active'):
+            return jsonify({"message": "User cannot be deactivated"}), 400
+
+        user.is_active = False  # Update status
         db.session.commit()
+        
         return jsonify({"message": "User deactivated successfully"}), 200
-    else:
-        return jsonify({"message": "User cannot be deactivated"}), 400
+
+    except Exception as e:
+        db.session.rollback()  # Prevent database corruption
+        print(f"Error deactivating user: {e}")  # Debugging log
+        return jsonify({"message": "Internal Server Error"}), 500
 
 
 # -------------------------
