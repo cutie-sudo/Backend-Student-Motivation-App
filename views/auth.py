@@ -177,12 +177,7 @@ def profile():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-from flask import Blueprint, request, jsonify
-from werkzeug.security import check_password_hash
-from flask_jwt_extended import create_access_token
-from your_database_models import Student, Admin  # Import your models
 
-auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
