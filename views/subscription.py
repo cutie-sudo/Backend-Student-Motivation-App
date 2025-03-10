@@ -13,7 +13,6 @@ subscription_bp = Blueprint('subscription', __name__)
 @cross_origin(origins="*", supports_credentials=True)
 @jwt_required()
 def subscribe():
-    Subscription, Category, db = get_models()
     student_id = get_jwt_identity()
     data = request.get_json()
     category_id = data.get('category_id')
@@ -34,7 +33,7 @@ def subscribe():
     db.session.commit()
 
     return jsonify({"message": "Subscribed successfully", "subscription_id": subscription.id}), 201
-
+    
 # Route to get all subscriptions for a student
 @subscription_bp.route('/subscriptions', methods=['GET'])
 @cross_origin(origins="*", supports_credentials=True)
