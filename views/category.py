@@ -78,7 +78,10 @@ def update_category(category_id):
 def delete_category(category_id):
     current_user = get_jwt_identity()
     category = get_category_by_id(category_id)
-    
+
+    print(f"🔍 Current User: {current_user}")  # Debugging
+    print(f"🔍 Category: {category}")  # Debugging
+
     if not category:
         return jsonify({"message": "Category not found"}), 404
     
@@ -88,6 +91,12 @@ def delete_category(category_id):
     if category.admin_id != current_user.get("id"):
         return jsonify({"message": "Unauthorized: You can only delete categories you created"}), 403
 
-    db.session.delete(category)
-    db.session.commit()
-    return jsonify({"message": "Category deleted successfully"}), 200
+    try:
+        db.session.delete(category)
+        db.session.commit()
+        return jsonify({"message": "Category deleted successfully"}), 200
+    except Exception as e:
+        print(f"🔥 ERROR: {e}")  # Log the exact error
+        db.session.rollback()
+        return jsonify({"message": "Server error"}), 500
+
